@@ -37,7 +37,7 @@ export default function ClientTicketView() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('ticket_messages')
-        .select('*, profile:profiles(first_name, last_name, role)')
+        .select('*, profile:profiles(first_name, last_name)')
         .eq('ticket_id', id)
         .eq('is_internal', false) // Client cannot see internal messages
         .order('created_at', { ascending: true });

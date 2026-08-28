@@ -23,6 +23,13 @@ export default function ClientMessages() {
         .eq('client_id', clientId)
         .order('created_at', { ascending: true });
       if (error) throw error;
+      
+      // Mark unread messages as read
+      const unreadIds = data.filter(m => !m.read_at && m.sender_id !== user?.id).map(m => m.id);
+      if (unreadIds.length > 0) {
+        await supabase.from('client_messages').update({ read_at: new Date().toISOString() }).in('id', unreadIds);
+      }
+      
       return data || [];
     },
     enabled: !!clientId,
@@ -35,7 +42,7 @@ export default function ClientMessages() {
     const subscription = supabase
       .channel('client_chat_updates')
       .on('postgres_changes', { 
-        event: 'INSERT', 
+        event: '*', 
         schema: 'public', 
         table: 'client_messages',
         filter: `client_id=eq.${clientId}`
@@ -70,6 +77,13 @@ export default function ClientMessages() {
     }
   });
 
+  const deleteMessage = useMutation({
+    mutationFn: async (messageId: string) => {
+      const { error } = await supabase.from('client_messages').update({ deleted_at: new Date().toISOString() }).eq('id', messageId);
+      if (error) throw error;
+    }
+  });
+
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] bg-background rounded-lg border overflow-hidden">
       <div className="p-4 border-b bg-card font-semibold shadow-sm z-10 flex items-center justify-between">
@@ -86,20 +100,44 @@ export default function ClientMessages() {
         )}
         {messages?.map((msg: any) => {
           const isMe = msg.sender_id === user?.id;
+          const isDeleted = !!msg.deleted_at;
+          
           return (
-            <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+            <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} group relative`}>
               <div className="flex items-end gap-2 max-w-[85%] md:max-w-[70%]">
                 {!isMe && (
                   <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold shrink-0">
                     {msg.sender?.first_name?.[0] || 'T'}
                   </div>
                 )}
-                <div className={`p-3 rounded-lg text-sm ${isMe ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-card border shadow-sm rounded-bl-none'}`}>
-                  {msg.message}
+                <div className={`p-3 rounded-lg text-sm shadow-sm ${isMe ? 'bg-green-100 dark:bg-green-900 text-foreground rounded-br-none' : 'bg-card border rounded-bl-none'}`}>
+                  {isDeleted ? (
+                    <span className="italic text-muted-foreground flex items-center gap-1">
+                      <span className="opacity-50">🚫</span> This message was deleted
+                    </span>
+                  ) : (
+                    msg.message
+                  )}
+                  
+                  {/* Delete button (only for own non-deleted messages) */}
+                  {isMe && !isDeleted && (
+                    <button 
+                      onClick={() => deleteMessage.mutate(msg.id)}
+                      className="absolute top-1 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 bg-background/80 rounded p-1"
+                      title="Delete for everyone"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                    </button>
+                  )}
                 </div>
               </div>
-              <div className="text-[10px] text-muted-foreground mt-1 mx-10">
+              <div className={`text-[10px] text-muted-foreground mt-1 flex items-center gap-1 ${isMe ? 'mr-1' : 'ml-10'}`}>
                 {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {isMe && (
+                  <span className={`font-bold tracking-tighter ml-1 ${msg.read_at ? 'text-blue-500' : 'text-gray-400'}`}>
+                    ✓✓
+                  </span>
+                )}
               </div>
             </div>
           );

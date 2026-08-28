@@ -31,13 +31,29 @@ export default function JitsiMeetingWrapper({ roomName, onClose }: JitsiMeetingW
             domain="meet.jit.si"
             roomName={`mystel_${roomName.replace(/[^a-zA-Z0-9]/g, '_')}`}
             configOverwrite={{
-              startWithAudioMuted: true,
+              startWithAudioMuted: false,
               disableModeratorIndicator: true,
-              startScreenSharing: true,
-              enableEmailInStats: false
+              startScreenSharing: false,
+              enableEmailInStats: false,
+              prejoinPageEnabled: false,
+              requireDisplayName: false,
+              localRecording: {
+                enabled: true,
+                format: 'ogg'
+              },
+              toolbarButtons: [
+                'camera', 'chat', 'closedcaptions', 'desktop', 'download', 'embedmeeting',
+                'etherpad', 'feedback', 'filmstrip', 'fullscreen', 'hangup', 'help',
+                'highlight', 'invite', 'linktosalesforce', 'livestreaming', 'localrecording',
+                'microphone', 'mute-everyone', 'mute-video-everyone', 'participants-pane',
+                'profile', 'raisehand', 'recording', 'security', 'select-background',
+                'settings', 'shareaudio', 'sharedvideo', 'shortcuts', 'stats', 'tileview',
+                'toggle-camera', 'videoquality', 'whiteboard'
+              ]
             }}
             interfaceConfigOverwrite={{
-              DISABLE_JOIN_LEAVE_NOTIFICATIONS: true
+              DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
+              SHOW_JITSI_WATERMARK: false
             }}
             userInfo={{
               displayName: displayName,

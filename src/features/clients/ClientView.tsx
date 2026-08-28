@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Edit, Phone, Mail, MapPin, Globe, FileText } from 'lucide-react';
 import InviteClientModal from './InviteClientModal';
 import ManualLoginModal from './ManualLoginModal';
+import ClientEditModal from './ClientEditModal';
 
 export default function ClientView() {
   const { id } = useParams<{ id: string }>();
@@ -46,10 +47,7 @@ export default function ClientView() {
         <div className="flex space-x-2">
           <ManualLoginModal clientId={client.id} orgId={client.organization_id} />
           <InviteClientModal clientId={client.id} orgId={client.organization_id} />
-          <Button variant="outline" size="sm">
-            <Edit className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
+          <ClientEditModal client={client} />
         </div>
       </div>
 

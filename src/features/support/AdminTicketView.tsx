@@ -38,7 +38,7 @@ export default function AdminTicketView() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('ticket_messages')
-        .select('*, profile:profiles(first_name, last_name, role)')
+        .select('*, profile:profiles(first_name, last_name)')
         .eq('ticket_id', id)
         .order('created_at', { ascending: true });
       if (error) throw error;
