@@ -1,11 +1,23 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, Edit2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SubscriptionsList() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [editingSub, setEditingSub] = useState<any>(null);
+  const [startDate, setStartDate] = useState('');
+  const [nextBillingDate, setNextBillingDate] = useState('');
+  const [status, setStatus] = useState('');
+
   const { data: subscriptions, isLoading } = useQuery({
     queryKey: ['subscriptions'],
     queryFn: async () => {
@@ -20,6 +32,36 @@ export default function SubscriptionsList() {
       return data;
     }
   });
+
+  const updateSub = useMutation({
+    mutationFn: async () => {
+      if (!editingSub) return;
+      const { error } = await supabase
+        .from('subscriptions')
+        .update({
+          start_date: startDate,
+          next_billing_date: nextBillingDate,
+          status
+        })
+        .eq('id', editingSub.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'Success', description: 'Subscription updated successfully.' });
+      setEditingSub(null);
+      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  });
+
+  const openEdit = (sub: any) => {
+    setEditingSub(sub);
+    setStartDate(sub.start_date || '');
+    setNextBillingDate(sub.next_billing_date || '');
+    setStatus(sub.status || 'Active');
+  };
 
   return (
     <div className="space-y-6">
@@ -50,6 +92,7 @@ export default function SubscriptionsList() {
                 <th className="p-4 font-medium">Billing Interval</th>
                 <th className="p-4 font-medium">Status</th>
                 <th className="p-4 font-medium">Next Billing</th>
+                <th className="p-4 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -69,6 +112,11 @@ export default function SubscriptionsList() {
                       </span>
                     </td>
                     <td className="p-4 text-muted-foreground">{sub.next_billing_date || '-'}</td>
+                    <td className="p-4">
+                      <Button variant="ghost" size="sm" onClick={() => openEdit(sub)}>
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -76,6 +124,41 @@ export default function SubscriptionsList() {
           </table>
         </div>
       </div>
+
+      <Dialog open={!!editingSub} onOpenChange={(open) => !open && setEditingSub(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Subscription</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={(e) => { e.preventDefault(); updateSub.mutate(); }} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <select value={status} onChange={(e) => setStatus(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <option value="Active">Active</option>
+                <option value="Trialing">Trialing</option>
+                <option value="Past Due">Past Due</option>
+                <option value="Paused">Paused</option>
+                <option value="Cancelled">Cancelled</option>
+                <option value="Expired">Expired</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Start Date</Label>
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label>Next Billing Date</Label>
+              <Input type="date" value={nextBillingDate} onChange={(e) => setNextBillingDate(e.target.value)} />
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button type="button" variant="outline" onClick={() => setEditingSub(null)}>Cancel</Button>
+              <Button type="submit" disabled={updateSub.isPending}>
+                {updateSub.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

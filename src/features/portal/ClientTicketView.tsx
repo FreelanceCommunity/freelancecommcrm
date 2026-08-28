@@ -57,12 +57,12 @@ export default function ClientTicketView() {
       const fileName = `${organizationId}/tickets/${id}/${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('client-documents')
+        .from('ticket_attachments')
         .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
-      const { data } = supabase.storage.from('client-documents').getPublicUrl(fileName);
+      const { data } = supabase.storage.from('ticket_attachments').getPublicUrl(fileName);
       setAttachmentUrl(data.publicUrl);
     } catch (err: any) {
       toast({ title: 'Upload failed', description: err.message, variant: 'destructive' });
@@ -118,26 +118,38 @@ export default function ClientTicketView() {
       </Card>
 
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Conversation</h3>
-        {messages?.map((msg: any) => (
-          <Card key={msg.id} className={msg.user_id === user?.id ? 'border-primary/50 bg-primary/5' : ''}>
-            <CardContent className="p-4">
-              <div className="flex justify-between items-center mb-2 text-sm text-muted-foreground">
-                <span className="font-semibold text-foreground">
-                  {msg.user_id === user?.id ? 'You' : `${msg.profile?.first_name} ${msg.profile?.last_name} (Support)`}
-                </span>
-                <span>{new Date(msg.created_at).toLocaleString()}</span>
-              </div>
-              <div className="whitespace-pre-wrap">{msg.message}</div>
-              {msg.attachment_url && (
-                <div className="mt-4 rounded-lg overflow-hidden border max-w-sm">
-                  <img src={msg.attachment_url} alt="Attachment" className="w-full h-auto object-cover" />
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/10 rounded-lg border">
+          {messages?.map((msg: any) => {
+            const isMe = msg.user_id === user?.id;
+            
+            return (
+              <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                <div className="flex items-end gap-2 max-w-[85%] md:max-w-[75%]">
+                  {!isMe && (
+                    <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold shrink-0">
+                      {msg.profile?.first_name?.[0] || 'S'}
+                    </div>
+                  )}
+                  <div className={`p-3 rounded-lg text-sm shadow-sm ${isMe ? 'bg-green-100 dark:bg-green-900 text-foreground rounded-br-none' : 'bg-card border rounded-bl-none'}`}>
+                    <div className="whitespace-pre-wrap">{msg.message}</div>
+                    {msg.attachment_url && (
+                      <div className="mt-2 rounded-lg overflow-hidden border">
+                        {msg.attachment_url.match(/\.(mp4|webm|ogg)$/i) ? (
+                          <video src={msg.attachment_url} controls className="max-w-xs max-h-60 rounded" />
+                        ) : (
+                          <img src={msg.attachment_url} alt="Attachment" className="max-w-xs max-h-60 object-cover rounded" />
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                <div className={`text-[10px] text-muted-foreground mt-1 ${isMe ? 'mr-1' : 'ml-10'}`}>
+                  {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
 
       {ticket.status !== 'Closed' && (
         <Card>
@@ -164,7 +176,7 @@ export default function ClientTicketView() {
               <div>
                 <input 
                   type="file" 
-                  accept="image/*" 
+                  accept="image/*,video/*" 
                   className="hidden" 
                   ref={fileInputRef} 
                   onChange={handleFileUpload} 
@@ -177,7 +189,7 @@ export default function ClientTicketView() {
                   disabled={uploading}
                 >
                   <ImageIcon className="h-4 w-4 mr-2" />
-                  {uploading ? 'Uploading...' : 'Attach Image'}
+                  {uploading ? 'Uploading...' : 'Attach File'}
                 </Button>
               </div>
 

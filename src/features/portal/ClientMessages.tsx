@@ -5,11 +5,14 @@ import { useAuth } from '@/features/auth/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Send } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ClientMessages() {
   const { organizationId, clientId, user } = useAuth();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [newMessage, setNewMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch messages for this client
@@ -74,6 +77,11 @@ export default function ClientMessages() {
     },
     onSuccess: () => {
       setNewMessage('');
+      setIsSending(false);
+    },
+    onError: (error: any) => {
+      setIsSending(false);
+      toast({ title: 'Error sending message', description: error.message, variant: 'destructive' });
     }
   });
 
@@ -146,7 +154,13 @@ export default function ClientMessages() {
       </div>
 
       <form 
-        onSubmit={(e) => { e.preventDefault(); if (newMessage.trim()) sendMessage.mutate(newMessage.trim()); }}
+        onSubmit={(e) => { 
+          e.preventDefault(); 
+          if (newMessage.trim() && !isSending) {
+            setIsSending(true);
+            sendMessage.mutate(newMessage.trim()); 
+          }
+        }}
         className="p-4 bg-card border-t flex gap-2"
       >
         <Input 
@@ -154,9 +168,9 @@ export default function ClientMessages() {
           onChange={(e: any) => setNewMessage(e.target.value)} 
           placeholder="Type your message..." 
           className="flex-1"
-          disabled={sendMessage.isPending}
+          disabled={isSending}
         />
-        <Button type="submit" disabled={sendMessage.isPending || !newMessage.trim()}>
+        <Button type="submit" disabled={isSending || !newMessage.trim()}>
           <Send className="mr-2 h-4 w-4" /> Send
         </Button>
       </form>

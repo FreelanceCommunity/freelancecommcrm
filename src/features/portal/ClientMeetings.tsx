@@ -1,15 +1,28 @@
+import { useState } from 'react';
+import { Calendar, Video, Clock, VideoIcon, Plus } from 'lucide-react';
+import JitsiMeetingWrapper from '@/components/JitsiMeetingWrapper';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
-import { Calendar, Video, Clock, VideoIcon } from 'lucide-react';
-import JitsiMeetingWrapper from '@/components/JitsiMeetingWrapper';
 
 export default function ClientMeetings() {
-  const { clientId } = useAuth();
+  const { clientId, organizationId, user } = useAuth();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [activeRoom, setActiveRoom] = useState<string | null>(null);
+  
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [description, setDescription] = useState('');
 
   const { data: meetings, isLoading } = useQuery({
     queryKey: ['portal_meetings', clientId],
@@ -23,14 +36,81 @@ export default function ClientMeetings() {
       if (error) throw error;
       return data || [];
     },
+    },
     enabled: !!clientId,
+  });
+
+  const createMeeting = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from('meetings').insert([{
+        organization_id: organizationId,
+        title,
+        description: description || null,
+        client_id: clientId,
+        organizer_id: user?.id,
+        start_time: new Date(startTime).toISOString(),
+        end_time: new Date(endTime).toISOString(),
+        meeting_url: null,
+      }]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['portal_meetings'] });
+      setOpen(false);
+      setTitle('');
+      setDescription('');
+      setStartTime('');
+      setEndTime('');
+      toast({ title: 'Success', description: 'Meeting scheduled successfully.' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
   });
 
   if (isLoading) return <div className="p-10 text-muted-foreground">Loading meetings...</div>;
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">Meetings</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold tracking-tight">Meetings</h1>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button><Plus className="mr-2 h-4 w-4" /> Schedule Meeting</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Schedule a Meeting</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={e => { e.preventDefault(); createMeeting.mutate(); }} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Title</Label>
+                <Input value={title} onChange={(e: any) => setTitle(e.target.value)} placeholder="e.g. Project Sync" required />
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Input value={description} onChange={(e: any) => setDescription(e.target.value)} placeholder="What is this meeting about?" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Start Time</Label>
+                  <Input type="datetime-local" value={startTime} onChange={(e: any) => setStartTime(e.target.value)} required />
+                </div>
+                <div className="space-y-2">
+                  <Label>End Time</Label>
+                  <Input type="datetime-local" value={endTime} onChange={(e: any) => setEndTime(e.target.value)} required />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 mt-4">
+                <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={createMeeting.isPending || !title || !startTime || !endTime}>
+                  {createMeeting.isPending ? 'Scheduling...' : 'Schedule'}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
 
       {!meetings || meetings.length === 0 ? (
         <Card>
