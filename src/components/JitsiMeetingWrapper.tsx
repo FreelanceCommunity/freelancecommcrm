@@ -28,7 +28,7 @@ export default function JitsiMeetingWrapper({ roomName, onClose }: JitsiMeetingW
         </div>
         <div className="flex-1 w-full bg-black">
           <JitsiMeeting
-            domain="meet.jit.si"
+            domain="meet.ffmuc.net"
             roomName={`mystel_${roomName.replace(/[^a-zA-Z0-9]/g, '_')}`}
             configOverwrite={{
               startWithAudioMuted: false,

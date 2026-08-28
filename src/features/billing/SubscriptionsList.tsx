@@ -113,9 +113,32 @@ export default function SubscriptionsList() {
                     </td>
                     <td className="p-4 text-muted-foreground">{sub.next_billing_date || '-'}</td>
                     <td className="p-4">
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(sub)}>
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => openEdit(sub)}>
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-xs"
+                          onClick={async () => {
+                            if (!sub.next_billing_date) return;
+                            const newDate = new Date(sub.next_billing_date);
+                            newDate.setDate(newDate.getDate() + 30);
+                            const { error } = await supabase
+                              .from('subscriptions')
+                              .update({ next_billing_date: newDate.toISOString().split('T')[0] })
+                              .eq('id', sub.id);
+                            if (error) toast({ title: 'Error', description: error.message, variant: 'destructive' });
+                            else {
+                              toast({ title: 'Success', description: 'Extended subscription by 30 days.' });
+                              queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+                            }
+                          }}
+                        >
+                          +30 Days
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))
