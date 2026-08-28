@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Image as ImageIcon, X } from 'lucide-react';
+import { ArrowLeft, Image as ImageIcon, X, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function ClientTicketView() {
@@ -13,9 +13,10 @@ export default function ClientTicketView() {
   const { user, organizationId } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  
   const [reply, setReply] = useState('');
   const [uploading, setUploading] = useState(false);
-  const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: ticket, isLoading } = useQuery({
@@ -39,7 +40,7 @@ export default function ClientTicketView() {
         .from('ticket_messages')
         .select('*, profile:profiles(first_name, last_name)')
         .eq('ticket_id', id)
-        .eq('is_internal', false) // Client cannot see internal messages
+        .eq('is_internal', false)
         .order('created_at', { ascending: true });
       if (error) throw error;
       return data;
@@ -47,47 +48,64 @@ export default function ClientTicketView() {
     enabled: !!id
   });
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !organizationId || !id) return;
-
-    try {
-      setUploading(true);
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${organizationId}/tickets/${id}/${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('ticket_attachments')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage.from('ticket_attachments').getPublicUrl(fileName);
-      setAttachmentUrl(data.publicUrl);
-    } catch (err: any) {
-      toast({ title: 'Upload failed', description: err.message, variant: 'destructive' });
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const selected = Array.from(e.target.files);
+      if (files.length + selected.length > 10) {
+        toast({ title: 'Limit exceeded', description: 'You can upload up to 10 images max.', variant: 'destructive' });
+        return;
+      }
+      setFiles(prev => [...prev, ...selected]);
     }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const addMessage = useMutation({
     mutationFn: async () => {
-      if ((!reply.trim() && !attachmentUrl) || !user) return;
-      const { error } = await supabase.from('ticket_messages').insert([{
-        ticket_id: id,
-        user_id: user.id,
-        message: reply || 'Attached an image.',
-        is_internal: false,
-        attachment_url: attachmentUrl
-      }]);
-      if (error) throw error;
+      if ((!reply.trim() && files.length === 0) || !user || !organizationId) return;
+      
+      setUploading(true);
+      const uploadedUrls: string[] = [];
+      
+      try {
+        for (const file of files) {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${organizationId}/tickets/${id}/msg_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('ticket_attachments')
+            .upload(fileName, file);
+            
+          if (uploadError) throw uploadError;
+          
+          const { data } = supabase.storage.from('ticket_attachments').getPublicUrl(fileName);
+          uploadedUrls.push(data.publicUrl);
+        }
+
+        const { error } = await supabase.from('ticket_messages').insert([{
+          ticket_id: id,
+          user_id: user.id,
+          message: reply || 'Attached file(s)',
+          is_internal: false,
+          attachments: uploadedUrls
+        }]);
+
+        if (error) throw error;
+      } finally {
+        setUploading(false);
+      }
     },
     onSuccess: () => {
       setReply('');
-      setAttachmentUrl(null);
+      setFiles([]);
       queryClient.invalidateQueries({ queryKey: ['ticket_messages', id] });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
     }
   });
 
@@ -107,13 +125,38 @@ export default function ClientTicketView() {
         <CardHeader>
           <CardTitle>Ticket Details</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="text-sm text-muted-foreground mb-4">
+        <CardContent className="space-y-4">
+          <div className="text-sm text-muted-foreground">
             Priority: {ticket.priority} | Category: {ticket.category} | Created: {new Date(ticket.created_at).toLocaleDateString()}
           </div>
-          <div className="p-4 bg-muted/30 rounded border">
+          
+          {ticket.app_location && (
+            <div className="flex items-center gap-2 text-sm font-medium bg-muted/50 p-2 rounded-md border">
+              <MapPin className="h-4 w-4 text-primary" />
+              Location in App: <span className="text-muted-foreground font-normal">{ticket.app_location}</span>
+            </div>
+          )}
+
+          <div className="p-4 bg-muted/30 rounded border whitespace-pre-wrap text-sm">
             {ticket.description || 'No description provided.'}
           </div>
+
+          {ticket.attachments && ticket.attachments.length > 0 && (
+            <div className="mt-4">
+              <div className="text-xs font-semibold uppercase text-muted-foreground mb-2">Attachments</div>
+              <div className="flex flex-wrap gap-2">
+                {ticket.attachments.map((url: string, idx: number) => (
+                  <a key={idx} href={url} target="_blank" rel="noreferrer" className="block border rounded-lg overflow-hidden hover:opacity-80 transition-opacity">
+                    {url.match(/\.(mp4|webm|ogg)$/i) ? (
+                      <video src={url} className="h-24 w-auto max-w-[150px] object-cover" />
+                    ) : (
+                      <img src={url} alt={`attachment-${idx}`} className="h-24 w-auto max-w-[150px] object-cover" />
+                    )}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -121,6 +164,9 @@ export default function ClientTicketView() {
         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/10 rounded-lg border">
           {messages?.map((msg: any) => {
             const isMe = msg.user_id === user?.id;
+            // Support backwards compatibility for single attachment_url
+            const allAttachments = [...(msg.attachments || [])];
+            if (msg.attachment_url) allAttachments.push(msg.attachment_url);
             
             return (
               <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
@@ -132,13 +178,18 @@ export default function ClientTicketView() {
                   )}
                   <div className={`p-3 rounded-lg text-sm shadow-sm ${isMe ? 'bg-green-100 dark:bg-green-900 text-foreground rounded-br-none' : 'bg-card border rounded-bl-none'}`}>
                     <div className="whitespace-pre-wrap">{msg.message}</div>
-                    {msg.attachment_url && (
-                      <div className="mt-2 rounded-lg overflow-hidden border">
-                        {msg.attachment_url.match(/\.(mp4|webm|ogg)$/i) ? (
-                          <video src={msg.attachment_url} controls className="max-w-xs max-h-60 rounded" />
-                        ) : (
-                          <img src={msg.attachment_url} alt="Attachment" className="max-w-xs max-h-60 object-cover rounded" />
-                        )}
+                    
+                    {allAttachments.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {allAttachments.map((url: string, idx: number) => (
+                          <a key={idx} href={url} target="_blank" rel="noreferrer" className="block rounded-lg overflow-hidden border bg-background/50">
+                            {url.match(/\.(mp4|webm|ogg)$/i) ? (
+                              <video src={url} controls className="max-w-xs max-h-40 object-cover" />
+                            ) : (
+                              <img src={url} alt={`attachment-${idx}`} className="max-w-xs max-h-40 object-cover" />
+                            )}
+                          </a>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -155,15 +206,26 @@ export default function ClientTicketView() {
       {ticket.status !== 'Closed' && (
         <Card>
           <CardContent className="p-4 space-y-4">
-            {attachmentUrl && (
-              <div className="relative inline-block border rounded p-2 bg-muted/50">
-                <img src={attachmentUrl} alt="Preview" className="h-20 w-auto rounded" />
-                <button 
-                  onClick={() => setAttachmentUrl(null)}
-                  className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1"
-                >
-                  <X className="h-3 w-3" />
-                </button>
+            {files.length > 0 && (
+              <div className="flex flex-wrap gap-2 p-3 border border-dashed rounded-lg bg-muted/30">
+                {files.map((file, idx) => (
+                  <div key={idx} className="relative group">
+                    {file.type.startsWith('image/') ? (
+                      <img src={URL.createObjectURL(file)} alt="preview" className="h-16 w-16 object-cover rounded border" />
+                    ) : (
+                      <div className="h-16 w-16 bg-background rounded border flex items-center justify-center text-[10px] break-all p-1 text-center">
+                        {file.name}
+                      </div>
+                    )}
+                    <button 
+                      type="button" 
+                      onClick={() => removeFile(idx)}
+                      className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
             
@@ -177,25 +239,26 @@ export default function ClientTicketView() {
               <div>
                 <input 
                   type="file" 
+                  multiple
                   accept="image/*,video/*" 
                   className="hidden" 
                   ref={fileInputRef} 
-                  onChange={handleFileUpload} 
+                  onChange={handleFileSelect} 
                 />
                 <Button 
                   type="button" 
                   variant="outline" 
                   size="sm" 
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
+                  disabled={uploading || files.length >= 10}
                 >
                   <ImageIcon className="h-4 w-4 mr-2" />
-                  {uploading ? 'Uploading...' : 'Attach File'}
+                  {files.length > 0 ? `Images (${files.length}/10)` : 'Attach Images'}
                 </Button>
               </div>
 
-              <Button onClick={() => addMessage.mutate()} disabled={addMessage.isPending || (!reply.trim() && !attachmentUrl)}>
-                {addMessage.isPending ? 'Sending...' : 'Send Reply'}
+              <Button onClick={() => addMessage.mutate()} disabled={addMessage.isPending || uploading || (!reply.trim() && files.length === 0)}>
+                {uploading || addMessage.isPending ? 'Sending...' : 'Send Reply'}
               </Button>
             </div>
           </CardContent>

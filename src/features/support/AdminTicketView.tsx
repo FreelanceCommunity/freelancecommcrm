@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Image as ImageIcon, X } from 'lucide-react';
+import { ArrowLeft, Image as ImageIcon, X, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function AdminTicketView() {
@@ -13,10 +13,11 @@ export default function AdminTicketView() {
   const { user, organizationId } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  
   const [reply, setReply] = useState('');
   const [isInternal, setIsInternal] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -73,47 +74,64 @@ export default function AdminTicketView() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ticket', id] }),
   });
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !organizationId || !id) return;
-
-    try {
-      setUploading(true);
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${organizationId}/tickets/${id}/${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('ticket_attachments')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage.from('ticket_attachments').getPublicUrl(fileName);
-      setAttachmentUrl(data.publicUrl);
-    } catch (err: any) {
-      toast({ title: 'Upload failed', description: err.message, variant: 'destructive' });
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const selected = Array.from(e.target.files);
+      if (files.length + selected.length > 10) {
+        toast({ title: 'Limit exceeded', description: 'You can upload up to 10 images max.', variant: 'destructive' });
+        return;
+      }
+      setFiles(prev => [...prev, ...selected]);
     }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const addMessage = useMutation({
     mutationFn: async () => {
-      if ((!reply.trim() && !attachmentUrl) || !user) return;
-      const { error } = await supabase.from('ticket_messages').insert([{
-        ticket_id: id,
-        user_id: user.id,
-        message: reply || 'Attached an image.',
-        is_internal: isInternal,
-        attachment_url: attachmentUrl
-      }]);
-      if (error) throw error;
+      if ((!reply.trim() && files.length === 0) || !user || !organizationId) return;
+      
+      setUploading(true);
+      const uploadedUrls: string[] = [];
+      
+      try {
+        for (const file of files) {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${organizationId}/tickets/${id}/msg_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('ticket_attachments')
+            .upload(fileName, file);
+            
+          if (uploadError) throw uploadError;
+          
+          const { data } = supabase.storage.from('ticket_attachments').getPublicUrl(fileName);
+          uploadedUrls.push(data.publicUrl);
+        }
+
+        const { error } = await supabase.from('ticket_messages').insert([{
+          ticket_id: id,
+          user_id: user.id,
+          message: reply || (isInternal ? 'Attached an internal file.' : 'Attached file(s).'),
+          is_internal: isInternal,
+          attachments: uploadedUrls
+        }]);
+
+        if (error) throw error;
+      } finally {
+        setUploading(false);
+      }
     },
     onSuccess: () => {
       setReply('');
-      setAttachmentUrl(null);
+      setFiles([]);
       queryClient.invalidateQueries({ queryKey: ['ticket_messages', id] });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
     }
   });
 
@@ -147,23 +165,33 @@ export default function AdminTicketView() {
         {ticket.status !== 'Closed' && (
           <Button variant="outline" size="sm" className="ml-auto bg-destructive/10 text-destructive hover:bg-destructive hover:text-white" onClick={async () => {
             if (confirm('Are you sure you want to close this ticket? This will permanently delete all attached images to save storage space.')) {
-              // 1. Find all messages with attachments
-              const msgsWithAttachments = messages?.filter(m => m.attachment_url) || [];
-              if (msgsWithAttachments.length > 0) {
-                // Extract file paths from URLs
-                const pathsToDelete = msgsWithAttachments.map(m => {
-                  const urlParts = m.attachment_url.split('/ticket_attachments/');
-                  return urlParts[1];
-                }).filter(Boolean);
-                
-                if (pathsToDelete.length > 0) {
-                  // 2. Delete from storage
-                  await supabase.storage.from('ticket_attachments').remove(pathsToDelete);
-                  // 3. Nullify attachment_url in db
-                  await supabase.from('ticket_messages').update({ attachment_url: null }).eq('ticket_id', id);
-                }
+              
+              // Helper to delete URLs
+              const deleteUrls = async (urls: string[]) => {
+                const paths = urls.map(u => u.split('/ticket_attachments/')[1]).filter(Boolean);
+                if (paths.length > 0) await supabase.storage.from('ticket_attachments').remove(paths);
+              };
+
+              // Delete from tickets
+              if (ticket.attachments && ticket.attachments.length > 0) {
+                await deleteUrls(ticket.attachments);
+                await supabase.from('tickets').update({ attachments: '{}' }).eq('id', id);
               }
-              // 4. Close ticket
+
+              // Delete from messages
+              const msgsWithLegacy = messages?.filter(m => m.attachment_url) || [];
+              const msgsWithMulti = messages?.filter(m => m.attachments && m.attachments.length > 0) || [];
+              
+              const allMessageUrls: string[] = [];
+              msgsWithLegacy.forEach(m => allMessageUrls.push(m.attachment_url));
+              msgsWithMulti.forEach(m => allMessageUrls.push(...m.attachments));
+
+              if (allMessageUrls.length > 0) {
+                await deleteUrls(allMessageUrls);
+                await supabase.from('ticket_messages').update({ attachment_url: null, attachments: '{}' }).eq('ticket_id', id);
+              }
+
+              // Close ticket
               await supabase.from('tickets').update({ status: 'Closed' }).eq('id', id);
               queryClient.invalidateQueries({ queryKey: ['ticket', id] });
               queryClient.invalidateQueries({ queryKey: ['ticket_messages', id] });
@@ -179,13 +207,38 @@ export default function AdminTicketView() {
         <CardHeader>
           <CardTitle>Ticket Details</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="text-sm text-muted-foreground mb-4">
+        <CardContent className="space-y-4">
+          <div className="text-sm text-muted-foreground">
             Reported by {ticket.client?.name} | Priority: {ticket.priority} | Category: {ticket.category}
           </div>
-          <div className="p-4 bg-muted/30 rounded border">
+          
+          {ticket.app_location && (
+            <div className="flex items-center gap-2 text-sm font-medium bg-muted/50 p-2 rounded-md border">
+              <MapPin className="h-4 w-4 text-primary" />
+              Location in App: <span className="text-muted-foreground font-normal">{ticket.app_location}</span>
+            </div>
+          )}
+
+          <div className="p-4 bg-muted/30 rounded border whitespace-pre-wrap text-sm">
             {ticket.description || 'No description provided.'}
           </div>
+
+          {ticket.attachments && ticket.attachments.length > 0 && (
+            <div className="mt-4">
+              <div className="text-xs font-semibold uppercase text-muted-foreground mb-2">Attachments</div>
+              <div className="flex flex-wrap gap-2">
+                {ticket.attachments.map((url: string, idx: number) => (
+                  <a key={idx} href={url} target="_blank" rel="noreferrer" className="block border rounded-lg overflow-hidden hover:opacity-80 transition-opacity">
+                    {url.match(/\.(mp4|webm|ogg)$/i) ? (
+                      <video src={url} className="h-24 w-auto max-w-[150px] object-cover" />
+                    ) : (
+                      <img src={url} alt={`attachment-${idx}`} className="h-24 w-auto max-w-[150px] object-cover" />
+                    )}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -194,6 +247,9 @@ export default function AdminTicketView() {
           {messages?.map(msg => {
             const isMe = msg.user_id === user?.id;
             
+            const allAttachments = [...(msg.attachments || [])];
+            if (msg.attachment_url) allAttachments.push(msg.attachment_url);
+
             return (
               <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                 <div className="flex items-end gap-2 max-w-[85%] md:max-w-[75%]">
@@ -205,13 +261,18 @@ export default function AdminTicketView() {
                   <div className={`p-3 rounded-lg text-sm shadow-sm ${msg.is_internal ? 'bg-amber-100 dark:bg-amber-900/40 text-foreground border border-amber-200' : isMe ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-card border rounded-bl-none'}`}>
                     {msg.is_internal && <div className="text-[10px] font-bold text-amber-600 dark:text-amber-400 mb-1">INTERNAL NOTE</div>}
                     <div className="whitespace-pre-wrap">{msg.message}</div>
-                    {msg.attachment_url && (
-                      <div className="mt-2 rounded-lg overflow-hidden border">
-                        {msg.attachment_url.match(/\.(mp4|webm|ogg)$/i) ? (
-                          <video src={msg.attachment_url} controls className="max-w-xs max-h-60 rounded" />
-                        ) : (
-                          <img src={msg.attachment_url} alt="Attachment" className="max-w-xs max-h-60 object-cover rounded" />
-                        )}
+                    
+                    {allAttachments.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {allAttachments.map((url: string, idx: number) => (
+                          <a key={idx} href={url} target="_blank" rel="noreferrer" className="block rounded-lg overflow-hidden border bg-background/50">
+                            {url.match(/\.(mp4|webm|ogg)$/i) ? (
+                              <video src={url} controls className="max-w-xs max-h-40 object-cover" />
+                            ) : (
+                              <img src={url} alt={`attachment-${idx}`} className="max-w-xs max-h-40 object-cover" />
+                            )}
+                          </a>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -230,15 +291,26 @@ export default function AdminTicketView() {
       {ticket.status !== 'Closed' ? (
         <Card>
           <CardContent className="p-4 space-y-4">
-            {attachmentUrl && (
-              <div className="relative inline-block border rounded p-2 bg-muted/50">
-                <img src={attachmentUrl} alt="Preview" className="h-20 w-auto rounded" />
-                <button 
-                  onClick={() => setAttachmentUrl(null)}
-                  className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1"
-                >
-                  <X className="h-3 w-3" />
-                </button>
+            {files.length > 0 && (
+              <div className="flex flex-wrap gap-2 p-3 border border-dashed rounded-lg bg-muted/30">
+                {files.map((file, idx) => (
+                  <div key={idx} className="relative group">
+                    {file.type.startsWith('image/') ? (
+                      <img src={URL.createObjectURL(file)} alt="preview" className="h-16 w-16 object-cover rounded border" />
+                    ) : (
+                      <div className="h-16 w-16 bg-background rounded border flex items-center justify-center text-[10px] break-all p-1 text-center">
+                        {file.name}
+                      </div>
+                    )}
+                    <button 
+                      type="button" 
+                      onClick={() => removeFile(idx)}
+                      className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
             
@@ -258,26 +330,27 @@ export default function AdminTicketView() {
                 <div>
                   <input 
                     type="file" 
+                    multiple
                     accept="image/*,video/*" 
                     className="hidden" 
                     ref={fileInputRef} 
-                    onChange={handleFileUpload} 
+                    onChange={handleFileSelect} 
                   />
                   <Button 
                     type="button" 
                     variant="outline" 
                     size="sm" 
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
+                    disabled={uploading || files.length >= 10}
                   >
                     <ImageIcon className="h-4 w-4 mr-2" />
-                    {uploading ? 'Uploading...' : 'Attach File'}
+                    {files.length > 0 ? `Images (${files.length}/10)` : 'Attach Images'}
                   </Button>
                 </div>
               </div>
 
-              <Button onClick={() => addMessage.mutate()} disabled={addMessage.isPending || (!reply.trim() && !attachmentUrl)}>
-                {addMessage.isPending ? 'Sending...' : 'Send Reply'}
+              <Button onClick={() => addMessage.mutate()} disabled={addMessage.isPending || uploading || (!reply.trim() && files.length === 0)}>
+                {uploading || addMessage.isPending ? 'Sending...' : 'Send Reply'}
               </Button>
             </div>
           </CardContent>

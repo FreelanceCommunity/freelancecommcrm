@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { useMeetingNotifications } from '@/hooks/useMeetingNotifications';
+import { useAppNotifications } from '@/hooks/useAppNotifications';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/features/auth/AuthContext';
 import { 
@@ -88,8 +90,24 @@ export default function AdminLayout() {
   const location = useLocation();
   const { signOut, user } = useAuth();
 
-  // Show popup toasts when any meeting is created/updated for this org
-  useMeetingNotifications();
+  // Show popup toasts when a notification arrives
+  useAppNotifications();
+
+  // Fetch unread notifications count
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ['notifications', 'unread', user?.id],
+    queryFn: async () => {
+      if (!user) return 0;
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false);
+      if (error) throw error;
+      return count || 0;
+    },
+    enabled: !!user,
+  });
 
   const renderNavItems = () => (
     <div className="space-y-6">
@@ -114,6 +132,11 @@ export default function AdminLayout() {
                 >
                   <item.icon className="h-4 w-4" />
                   {item.name}
+                  {item.name === 'Notifications' && unreadCount > 0 && (
+                    <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground">
+                      {unreadCount}
+                    </span>
+                  )}
                 </Link>
               );
             })}
