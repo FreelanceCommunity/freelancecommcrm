@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Edit, Phone, Mail, MapPin } from 'lucide-react';
+import InviteClientModal from './InviteClientModal';
 
 export default function ClientView() {
   const { id } = useParams<{ id: string }>();
@@ -41,10 +42,13 @@ export default function ClientView() {
             {client.status}
           </span>
         </div>
-        <Button variant="outline">
-          <Edit className="mr-2 h-4 w-4" />
-          Edit
-        </Button>
+        <div className="flex space-x-2">
+          <InviteClientModal clientId={client.id} orgId={client.organization_id} />
+          <Button variant="outline" size="sm">
+            <Edit className="mr-2 h-4 w-4" />
+            Edit
+          </Button>
+        </div>
       </div>
 
       <div className="flex space-x-2 border-b pb-2">

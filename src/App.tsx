@@ -19,6 +19,11 @@ import AdminTicketView from '@/features/support/AdminTicketView';
 import ClientDashboard from '@/features/portal/ClientDashboard';
 import ClientInvoices from '@/features/portal/ClientInvoices';
 import ClientTickets from '@/features/portal/ClientTickets';
+import ProjectsList from '@/features/projects/ProjectsList';
+import AdminSettings from '@/features/settings/AdminSettings';
+import ClientProjects from '@/features/portal/ClientProjects';
+import ClientSubscriptions from '@/features/portal/ClientSubscriptions';
+import ClientProfile from '@/features/portal/ClientProfile';
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { session } = useAuth();
@@ -50,14 +55,14 @@ function App() {
         <Route path="clients/new" element={<ClientCreate />} />
         <Route path="clients/:id" element={<ClientView />} />
         <Route path="deals" element={<DealsKanban />} />
-        <Route path="projects" element={<div>Projects (TODO)</div>} />
+        <Route path="projects" element={<ProjectsList />} />
         <Route path="subscriptions" element={<SubscriptionsList />} />
         <Route path="subscriptions/new" element={<SubscriptionCreate />} />
         <Route path="invoices" element={<InvoicesList />} />
         <Route path="invoices/new" element={<InvoiceCreate />} />
         <Route path="tickets" element={<AdminTicketList />} />
         <Route path="tickets/:id" element={<AdminTicketView />} />
-        <Route path="settings" element={<div>Settings (TODO)</div>} />
+        <Route path="settings" element={<AdminSettings />} />
       </Route>
       
       {/* Client Portal Routes */}
@@ -70,11 +75,11 @@ function App() {
       }>
         <Route index element={<Navigate to="/portal/dashboard" replace />} />
         <Route path="dashboard" element={<ClientDashboard />} />
-        <Route path="projects" element={<div>Projects (TODO)</div>} />
-        <Route path="subscriptions" element={<div>Subscriptions (TODO)</div>} />
+        <Route path="projects" element={<ClientProjects />} />
+        <Route path="subscriptions" element={<ClientSubscriptions />} />
         <Route path="invoices" element={<ClientInvoices />} />
         <Route path="tickets" element={<ClientTickets />} />
-        <Route path="profile" element={<div>Profile (TODO)</div>} />
+        <Route path="profile" element={<ClientProfile />} />
       </Route>
     </Routes>
   );
