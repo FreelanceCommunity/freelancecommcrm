@@ -6,8 +6,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileText, CreditCard, CheckCircle2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 
 export default function ClientInvoices() {
@@ -16,9 +14,6 @@ export default function ClientInvoices() {
   const { toast } = useToast();
   
   const [paymentInvoice, setPaymentInvoice] = useState<any>(null);
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvc, setCvc] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
   const { data: invoices, isLoading } = useQuery({
@@ -40,18 +35,17 @@ export default function ClientInvoices() {
     mutationFn: async () => {
       if (!paymentInvoice || !organizationId || !clientId) throw new Error('Missing data');
       
-      // Update invoice status to paid
+      // Update invoice status to pending confirmation
       const { error: invoiceError } = await supabase
         .from('invoices')
         .update({ 
-          status: 'Paid',
-          amount_paid: paymentInvoice.total
+          status: 'Pending Confirmation'
         })
         .eq('id', paymentInvoice.id);
         
       if (invoiceError) throw invoiceError;
 
-      // Insert payment record
+      // Insert payment record as pending
       const { error: paymentError } = await supabase
         .from('payments')
         .insert([{
@@ -60,22 +54,19 @@ export default function ClientInvoices() {
           invoice_id: paymentInvoice.id,
           amount: paymentInvoice.total,
           currency: paymentInvoice.currency || 'USD',
-          status: 'Succeeded',
-          payment_method: 'credit_card'
+          status: 'Pending',
+          payment_method: 'manual'
         }]);
 
       if (paymentError) throw paymentError;
     },
     onSuccess: () => {
-      toast({ title: 'Payment Successful', description: 'Your invoice has been marked as Paid.' });
+      toast({ title: 'Payment Submitted', description: 'Your payment is pending admin confirmation.' });
       queryClient.invalidateQueries({ queryKey: ['portal_invoices'] });
       queryClient.invalidateQueries({ queryKey: ['portal_payments'] });
       setPaymentInvoice(null);
-      setCardNumber('');
-      setExpiry('');
-      setCvc('');
     },
-    onError: (err: any) => toast({ title: 'Payment Failed', description: err.message, variant: 'destructive' })
+    onError: (err: any) => toast({ title: 'Submission Failed', description: err.message, variant: 'destructive' })
   });
 
   const handlePay = (e: React.FormEvent) => {
@@ -85,7 +76,7 @@ export default function ClientInvoices() {
     setTimeout(() => {
       processPayment.mutate();
       setIsProcessing(false);
-    }, 1500);
+    }, 1000);
   };
 
   if (isLoading) return <div className="p-10 text-muted-foreground">Loading invoices...</div>;
@@ -93,6 +84,7 @@ export default function ClientInvoices() {
   const statusColor = (status: string) => {
     switch (status) {
       case 'Paid': return 'bg-green-100 text-green-700';
+      case 'Pending Confirmation': return 'bg-purple-100 text-purple-700';
       case 'Sent': case 'Viewed': return 'bg-blue-100 text-blue-700';
       case 'Overdue': return 'bg-red-100 text-red-700';
       case 'Draft': return 'bg-slate-100 text-slate-600';
@@ -140,7 +132,7 @@ export default function ClientInvoices() {
                         </span>
                       </td>
                       <td className="p-3 text-right">
-                        {inv.status !== 'Paid' && (
+                        {inv.status !== 'Paid' && inv.status !== 'Pending Confirmation' && (
                           <Button size="sm" onClick={() => setPaymentInvoice(inv)}>
                             <CreditCard className="h-4 w-4 mr-2" /> Pay Now
                           </Button>
@@ -166,52 +158,17 @@ export default function ClientInvoices() {
           </DialogHeader>
           
           <form onSubmit={handlePay} className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label htmlFor="cardNumber">Card Number</Label>
-              <div className="relative">
-                <Input 
-                  id="cardNumber" 
-                  placeholder="0000 0000 0000 0000" 
-                  value={cardNumber}
-                  onChange={(e) => setCardNumber(e.target.value)}
-                  maxLength={19}
-                  required
-                />
-                <CreditCard className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="expiry">Expiry (MM/YY)</Label>
-                <Input 
-                  id="expiry" 
-                  placeholder="MM/YY" 
-                  value={expiry}
-                  onChange={(e) => setExpiry(e.target.value)}
-                  maxLength={5}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cvc">CVC</Label>
-                <Input 
-                  id="cvc" 
-                  placeholder="123" 
-                  value={cvc}
-                  onChange={(e) => setCvc(e.target.value)}
-                  maxLength={4}
-                  required
-                />
-              </div>
+            <div className="p-4 bg-muted/50 rounded-lg text-sm">
+              <p>Please confirm that you want to mark this invoice as paid.</p>
+              <p className="mt-2 text-muted-foreground">The admin will verify your manual payment. Once confirmed, your invoice will be marked as Paid and your subscription will be activated.</p>
             </div>
 
             <div className="pt-4 flex gap-2">
               <Button type="button" variant="outline" className="flex-1" onClick={() => setPaymentInvoice(null)} disabled={isProcessing}>
                 Cancel
               </Button>
-              <Button type="submit" className="flex-1" disabled={isProcessing || !cardNumber || !expiry || !cvc}>
-                {isProcessing ? 'Processing...' : `Pay $${paymentInvoice?.total}`}
+              <Button type="submit" className="flex-1" disabled={isProcessing}>
+                {isProcessing ? 'Processing...' : `Confirm Payment`}
               </Button>
             </div>
             <div className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1 mt-2">

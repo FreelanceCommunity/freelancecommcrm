@@ -78,11 +78,45 @@ export default function InvoicesList() {
         sender_id: userData.user.id,
         message: message
       }]);
-      
       if (error) throw error;
       alert('Invoice sent to client in chat!');
     } catch (err: any) {
       alert('Failed to send in chat: ' + err.message);
+    }
+  };
+
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+  const handleConfirmPayment = async (invoice: any) => {
+    try {
+      setConfirmingId(invoice.id);
+      
+      // Update invoice
+      const { error: invError } = await supabase
+        .from('invoices')
+        .update({ status: 'Paid', amount_paid: invoice.total })
+        .eq('id', invoice.id);
+      if (invError) throw invError;
+
+      // Update related pending payment
+      await supabase
+        .from('payments')
+        .update({ status: 'Succeeded' })
+        .eq('invoice_id', invoice.id);
+
+      // Activate any past due subscriptions for this client
+      await supabase
+        .from('subscriptions')
+        .update({ status: 'Active' })
+        .eq('client_id', invoice.client_id)
+        .in('status', ['Past Due', 'Pending', 'Canceled']);
+
+      alert('Payment confirmed and subscription activated!');
+      window.location.reload(); // Simple refresh to update UI
+    } catch (err: any) {
+      alert('Failed to confirm payment: ' + err.message);
+    } finally {
+      setConfirmingId(null);
     }
   };
 
@@ -146,6 +180,11 @@ export default function InvoicesList() {
                       </span>
                     </td>
                     <td className="p-4 text-right flex justify-end gap-2">
+                      {invoice.status === 'Pending Confirmation' && (
+                        <Button variant="default" size="sm" onClick={() => handleConfirmPayment(invoice)} disabled={confirmingId === invoice.id}>
+                          {confirmingId === invoice.id ? 'Confirming...' : 'Confirm Payment'}
+                        </Button>
+                      )}
                       <Button variant="ghost" size="sm" onClick={() => handleSendEmail(invoice)} disabled={sendingInvoiceId === invoice.id}>
                         {sendingInvoiceId === invoice.id ? 'Emailing...' : 'Email'}
                       </Button>
