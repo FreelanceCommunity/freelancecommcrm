@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Search, Plus, FileText } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 export default function InvoicesList() {
   const { data: invoices, isLoading } = useQuery({
@@ -38,9 +39,9 @@ export default function InvoicesList() {
 
       const html = `
         <div style="font-family: sans-serif; padding: 20px;">
-          <h2>Invoice ${invoice.invoice_number}</h2>
+          <h2>Invoice ${invoice.invoice_number} from Freelancecomm</h2>
           <p>Hello,</p>
-          <p>Your invoice for <strong>${invoice.currency} ${invoice.total}</strong> is ready.</p>
+          <p>Your invoice for <strong>${invoice.currency} ${invoice.total}</strong> from Freelancecomm is ready.</p>
           <p>Due Date: ${invoice.due_date || 'Upon receipt'}</p>
           <p>Status: ${invoice.status}</p>
           <a href="https://crm.freelancecomm.site/portal/invoices" style="display:inline-block; padding: 10px 20px; background-color: #000; color: #fff; text-decoration: none; border-radius: 5px;">View Invoice in Portal</a>
@@ -65,9 +66,11 @@ export default function InvoicesList() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Invoices</h1>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Invoice
+        <Button asChild>
+          <Link to="/app/invoices/new">
+            <Plus className="mr-2 h-4 w-4" />
+            Create Invoice
+          </Link>
         </Button>
       </div>
 
@@ -100,7 +103,9 @@ export default function InvoicesList() {
                     <div className="flex flex-col items-center justify-center space-y-3">
                       <FileText className="h-10 w-10 text-muted-foreground/30" />
                       <p>No invoices yet. Create your first invoice to start tracking client billing.</p>
-                      <Button variant="outline">Create Invoice</Button>
+                      <Button variant="outline" asChild>
+                        <Link to="/app/invoices/new">Create Invoice</Link>
+                      </Button>
                     </div>
                   </td>
                 </tr>

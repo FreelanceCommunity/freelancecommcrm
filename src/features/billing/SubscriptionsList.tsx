@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Search, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Link } from 'react-router-dom';
 
 export default function SubscriptionsList() {
   const { data: subscriptions, isLoading } = useQuery({
@@ -24,9 +25,11 @@ export default function SubscriptionsList() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Subscriptions</h1>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          New Subscription
+        <Button asChild>
+          <Link to="/app/subscriptions/new">
+            <Plus className="mr-2 h-4 w-4" />
+            New Subscription
+          </Link>
         </Button>
       </div>
 
