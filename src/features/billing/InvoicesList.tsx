@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Search, Plus, FileText } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { useState } from 'react';
 
 export default function InvoicesList() {
   const { data: invoices, isLoading } = useQuery({
@@ -19,6 +20,46 @@ export default function InvoicesList() {
       return data;
     }
   });
+
+  const [sendingInvoiceId, setSendingInvoiceId] = useState<string | null>(null);
+
+  const handleSendEmail = async (invoice: any) => {
+    setSendingInvoiceId(invoice.id);
+    try {
+      // Find a contact email (client or primary contact)
+      const { data: contacts } = await supabase.from('client_contacts').select('email').eq('client_id', invoice.client_id).eq('is_primary', true).single();
+      const { data: client } = await supabase.from('clients').select('email').eq('id', invoice.client_id).single();
+      
+      const email = contacts?.email || client?.email;
+      if (!email) {
+        alert('No email found for this client.');
+        return;
+      }
+
+      const html = `
+        <div style="font-family: sans-serif; padding: 20px;">
+          <h2>Invoice ${invoice.invoice_number}</h2>
+          <p>Hello,</p>
+          <p>Your invoice for <strong>${invoice.currency} ${invoice.total}</strong> is ready.</p>
+          <p>Due Date: ${invoice.due_date || 'Upon receipt'}</p>
+          <p>Status: ${invoice.status}</p>
+          <a href="https://crm.freelancecomm.site/portal/invoices" style="display:inline-block; padding: 10px 20px; background-color: #000; color: #fff; text-decoration: none; border-radius: 5px;">View Invoice in Portal</a>
+        </div>
+      `;
+
+      const res = await supabase.functions.invoke('resend-email', {
+        body: { to: email, subject: `Invoice ${invoice.invoice_number}`, html }
+      });
+
+      if (res.error) throw res.error;
+      
+      alert('Invoice email sent!');
+    } catch (err: any) {
+      alert('Failed to send email: ' + err.message);
+    } finally {
+      setSendingInvoiceId(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -75,7 +116,10 @@ export default function InvoicesList() {
                         {invoice.status}
                       </span>
                     </td>
-                    <td className="p-4 text-right">
+                    <td className="p-4 text-right flex justify-end gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => handleSendEmail(invoice)} disabled={sendingInvoiceId === invoice.id}>
+                        {sendingInvoiceId === invoice.id ? 'Sending...' : 'Send'}
+                      </Button>
                       <Button variant="ghost" size="sm">View</Button>
                     </td>
                   </tr>

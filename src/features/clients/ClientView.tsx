@@ -9,14 +9,14 @@ import InviteClientModal from './InviteClientModal';
 
 export default function ClientView() {
   const { id } = useParams<{ id: string }>();
-  const [activeTab, setActiveTab] = useState<'overview' | 'activities' | 'deals'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'activities' | 'deals' | 'team'>('overview');
 
   const { data: client, isLoading, error } = useQuery({
     queryKey: ['client', id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clients')
-        .select('*, activities(*), deals(*)')
+        .select('*, activities(*), deals(*), organization_members(id, role, profiles(first_name, last_name, email))')
         .eq('id', id)
         .single();
       if (error) throw error;
@@ -53,6 +53,7 @@ export default function ClientView() {
 
       <div className="flex space-x-2 border-b pb-2">
         <Button variant={activeTab === 'overview' ? 'default' : 'ghost'} onClick={() => setActiveTab('overview')}>Overview</Button>
+        <Button variant={activeTab === 'team' ? 'default' : 'ghost'} onClick={() => setActiveTab('team')}>Team ({client.organization_members?.length || 0})</Button>
         <Button variant={activeTab === 'activities' ? 'default' : 'ghost'} onClick={() => setActiveTab('activities')}>Activities ({client.activities?.length || 0})</Button>
         <Button variant={activeTab === 'deals' ? 'default' : 'ghost'} onClick={() => setActiveTab('deals')}>Deals ({client.deals?.length || 0})</Button>
       </div>
@@ -109,6 +110,33 @@ export default function ClientView() {
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {new Date(activity.activity_date).toLocaleDateString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === 'team' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Client Users</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {client.organization_members?.length === 0 ? (
+              <p className="text-muted-foreground text-sm">No users invited yet. Click "Invite Client" to add users.</p>
+            ) : (
+              <div className="divide-y">
+                {client.organization_members?.map((member: any) => (
+                  <div key={member.id} className="flex justify-between py-3 items-center">
+                    <div>
+                      <div className="font-semibold">{member.profiles?.first_name} {member.profiles?.last_name}</div>
+                      <div className="text-sm text-muted-foreground">{member.profiles?.email}</div>
+                    </div>
+                    <div className="font-medium text-sm px-2 py-1 bg-muted rounded">
+                      {member.role}
                     </div>
                   </div>
                 ))}

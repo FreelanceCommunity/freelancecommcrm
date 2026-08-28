@@ -27,6 +27,9 @@ import AdminSettings from '@/features/settings/AdminSettings';
 import ClientProjects from '@/features/portal/ClientProjects';
 import ClientSubscriptions from '@/features/portal/ClientSubscriptions';
 import ClientProfile from '@/features/portal/ClientProfile';
+import ClientMeetings from '@/features/portal/ClientMeetings';
+import MeetingsList from '@/features/meetings/MeetingsList';
+import AdminMessages from '@/features/messages/AdminMessages';
 
 // CRM Admin
 import ContactsListComponent from '@/features/crm/ContactsList';
@@ -112,6 +115,8 @@ function App() {
         <Route path="projects" element={<ProjectsList />} />
         <Route path="tasks" element={<TasksListComponent />} />
         <Route path="milestones" element={<MilestonesListComponent />} />
+        <Route path="meetings" element={<MeetingsList />} />
+        <Route path="messages/:clientId?" element={<AdminMessages />} />
         
         <Route path="subscriptions" element={<SubscriptionsList />} />
         <Route path="subscriptions/new" element={<SubscriptionCreate />} />
@@ -146,6 +151,7 @@ function App() {
         <Route path="services" element={<ClientServicesComponent />} />
         <Route path="projects" element={<ClientProjects />} />
         <Route path="tasks" element={<ClientTasksComponent />} />
+        <Route path="meetings" element={<ClientMeetings />} />
         
         <Route path="subscriptions" element={<ClientSubscriptions />} />
         <Route path="invoices" element={<ClientInvoices />} />

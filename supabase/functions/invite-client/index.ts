@@ -29,9 +29,17 @@ serve(async (req) => {
 
     if (error) throw error;
     
-    // Log invitation
+    // Log invitation (optional, but good for tracking)
     await supabaseAdmin.from('invitations').insert([{
       organization_id, client_id, email, role, token: 'invited_' + data.user.id, expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    }]);
+
+    // Ensure they are added to organization_members so they have access when they log in
+    await supabaseAdmin.from('organization_members').insert([{
+      organization_id,
+      user_id: data.user.id,
+      role,
+      client_id
     }]);
 
     return new Response(JSON.stringify({ success: true, user: data.user }), {

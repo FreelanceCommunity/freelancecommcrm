@@ -21,7 +21,9 @@ import {
   Lightbulb,
   File,
   BarChart,
-  Bell
+  Bell,
+  Calendar,
+  MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -40,6 +42,8 @@ const navigationGroups = [
       { name: 'Leads', href: '/app/leads', icon: Users },
       { name: 'Deals', href: '/app/deals', icon: Briefcase },
       { name: 'Activities', href: '/app/activities', icon: Activity },
+      { name: 'Meetings', href: '/app/meetings', icon: Calendar },
+      { name: 'Messages', href: '/app/messages', icon: MessageSquare },
     ]
   },
   {

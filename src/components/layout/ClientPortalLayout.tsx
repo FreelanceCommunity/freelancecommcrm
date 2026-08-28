@@ -19,7 +19,8 @@ import {
   File,
   MessageSquare,
   Bell,
-  User
+  User,
+  Calendar
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -28,6 +29,7 @@ const navigation = [
   { name: 'My Company', href: '/portal/company', icon: Building },
   { name: 'Services', href: '/portal/services', icon: Briefcase },
   { name: 'Projects', href: '/portal/projects', icon: Briefcase },
+  { name: 'Meetings', href: '/portal/meetings', icon: Calendar },
   { name: 'Tasks', href: '/portal/tasks', icon: CheckSquare },
   { name: 'Support Tickets', href: '/portal/tickets', icon: LifeBuoy },
   { name: 'Bug Reports', href: '/portal/bugs', icon: Bug },
