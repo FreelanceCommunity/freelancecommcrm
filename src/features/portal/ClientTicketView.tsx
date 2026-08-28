@@ -8,23 +8,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Image as ImageIcon, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-export default function AdminTicketView() {
+export default function ClientTicketView() {
   const { id } = useParams<{ id: string }>();
   const { user, organizationId } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [reply, setReply] = useState('');
-  const [isInternal, setIsInternal] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: ticket, isLoading } = useQuery({
-    queryKey: ['ticket', id],
+    queryKey: ['portal_ticket', id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tickets')
-        .select('*, client:clients(name)')
+        .select('*')
         .eq('id', id)
         .single();
       if (error) throw error;
@@ -40,6 +39,7 @@ export default function AdminTicketView() {
         .from('ticket_messages')
         .select('*, profile:profiles(first_name, last_name, role)')
         .eq('ticket_id', id)
+        .eq('is_internal', false) // Client cannot see internal messages
         .order('created_at', { ascending: true });
       if (error) throw error;
       return data;
@@ -79,7 +79,7 @@ export default function AdminTicketView() {
         ticket_id: id,
         user_id: user.id,
         message: reply || 'Attached an image.',
-        is_internal: isInternal,
+        is_internal: false,
         attachment_url: attachmentUrl
       }]);
       if (error) throw error;
@@ -97,41 +97,10 @@ export default function AdminTicketView() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center space-x-4">
         <Button variant="outline" size="icon" asChild>
-          <Link to="/app/tickets"><ArrowLeft className="h-4 w-4" /></Link>
+          <Link to="/portal/tickets"><ArrowLeft className="h-4 w-4" /></Link>
         </Button>
         <h1 className="text-2xl font-bold tracking-tight">{ticket.title}</h1>
-        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${ticket.status === 'Closed' ? 'bg-slate-100 text-slate-600' : 'bg-primary/10 text-primary'}`}>
-          {ticket.status}
-        </span>
-        {ticket.status !== 'Closed' && (
-          <Button variant="outline" size="sm" className="ml-auto bg-destructive/10 text-destructive hover:bg-destructive hover:text-white" onClick={async () => {
-            if (confirm('Are you sure you want to close this ticket? This will permanently delete all attached images to save storage space.')) {
-              // 1. Find all messages with attachments
-              const msgsWithAttachments = messages?.filter(m => m.attachment_url) || [];
-              if (msgsWithAttachments.length > 0) {
-                // Extract file paths from URLs
-                const pathsToDelete = msgsWithAttachments.map(m => {
-                  const urlParts = m.attachment_url.split('/client-documents/');
-                  return urlParts[1];
-                }).filter(Boolean);
-                
-                if (pathsToDelete.length > 0) {
-                  // 2. Delete from storage
-                  await supabase.storage.from('client-documents').remove(pathsToDelete);
-                  // 3. Nullify attachment_url in db
-                  await supabase.from('ticket_messages').update({ attachment_url: null }).eq('ticket_id', id);
-                }
-              }
-              // 4. Close ticket
-              await supabase.from('tickets').update({ status: 'Closed' }).eq('id', id);
-              queryClient.invalidateQueries({ queryKey: ['ticket', id] });
-              queryClient.invalidateQueries({ queryKey: ['ticket_messages', id] });
-              toast({ title: 'Ticket Closed', description: 'Ticket closed and attachments deleted to save space.' });
-            }
-          }}>
-            Close Ticket & Purge Attachments
-          </Button>
-        )}
+        <span className="bg-primary/10 text-primary px-2 py-1 rounded-full text-xs font-semibold">{ticket.status}</span>
       </div>
 
       <Card>
@@ -140,7 +109,7 @@ export default function AdminTicketView() {
         </CardHeader>
         <CardContent className="space-y-2">
           <div className="text-sm text-muted-foreground mb-4">
-            Reported by {ticket.client?.name} | Priority: {ticket.priority} | Category: {ticket.category}
+            Priority: {ticket.priority} | Category: {ticket.category} | Created: {new Date(ticket.created_at).toLocaleDateString()}
           </div>
           <div className="p-4 bg-muted/30 rounded border">
             {ticket.description || 'No description provided.'}
@@ -150,12 +119,12 @@ export default function AdminTicketView() {
 
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Conversation</h3>
-        {messages?.map(msg => (
-          <Card key={msg.id} className={msg.is_internal ? 'border-amber-500/50 bg-amber-500/5' : ''}>
+        {messages?.map((msg: any) => (
+          <Card key={msg.id} className={msg.user_id === user?.id ? 'border-primary/50 bg-primary/5' : ''}>
             <CardContent className="p-4">
               <div className="flex justify-between items-center mb-2 text-sm text-muted-foreground">
                 <span className="font-semibold text-foreground">
-                  {msg.profile?.first_name} {msg.profile?.last_name} {msg.is_internal && <span className="text-amber-600 text-xs ml-2">(Internal Note)</span>}
+                  {msg.user_id === user?.id ? 'You' : `${msg.profile?.first_name} ${msg.profile?.last_name} (Support)`}
                 </span>
                 <span>{new Date(msg.created_at).toLocaleString()}</span>
               </div>
@@ -170,7 +139,7 @@ export default function AdminTicketView() {
         ))}
       </div>
 
-      {ticket.status !== 'Closed' ? (
+      {ticket.status !== 'Closed' && (
         <Card>
           <CardContent className="p-4 space-y-4">
             {attachmentUrl && (
@@ -192,31 +161,24 @@ export default function AdminTicketView() {
               onChange={(e: any) => setReply(e.target.value)}
             />
             <div className="flex justify-between items-center">
-              <div className="flex items-center space-x-4">
-                <label className="flex items-center space-x-2 text-sm cursor-pointer">
-                  <input type="checkbox" checked={isInternal} onChange={(e: any) => setIsInternal(e.target.checked)} />
-                  <span>Internal Note (Hidden from client)</span>
-                </label>
-                
-                <div>
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    className="hidden" 
-                    ref={fileInputRef} 
-                    onChange={handleFileUpload} 
-                  />
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                  >
-                    <ImageIcon className="h-4 w-4 mr-2" />
-                    {uploading ? 'Uploading...' : 'Attach Image'}
-                  </Button>
-                </div>
+              <div>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  ref={fileInputRef} 
+                  onChange={handleFileUpload} 
+                />
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  <ImageIcon className="h-4 w-4 mr-2" />
+                  {uploading ? 'Uploading...' : 'Attach Image'}
+                </Button>
               </div>
 
               <Button onClick={() => addMessage.mutate()} disabled={addMessage.isPending || (!reply.trim() && !attachmentUrl)}>
@@ -225,7 +187,9 @@ export default function AdminTicketView() {
             </div>
           </CardContent>
         </Card>
-      ) : (
+      )}
+      
+      {ticket.status === 'Closed' && (
         <div className="text-center p-4 bg-muted text-muted-foreground rounded-lg border">
           This ticket has been closed. You cannot send new replies.
         </div>

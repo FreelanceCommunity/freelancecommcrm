@@ -22,6 +22,7 @@ import AdminTicketView from '@/features/support/AdminTicketView';
 import ClientDashboard from '@/features/portal/ClientDashboard';
 import ClientInvoices from '@/features/portal/ClientInvoices';
 import ClientTickets from '@/features/portal/ClientTickets';
+import ClientTicketView from '@/features/portal/ClientTicketView';
 import ProjectsList from '@/features/projects/ProjectsList';
 import AdminSettings from '@/features/settings/AdminSettings';
 import ClientProjects from '@/features/portal/ClientProjects';
@@ -158,6 +159,7 @@ function App() {
         <Route path="payments" element={<ClientPaymentsComponent />} />
         
         <Route path="tickets" element={<ClientTickets />} />
+        <Route path="tickets/:id" element={<ClientTicketView />} />
         <Route path="bugs" element={<ClientBugsComponent />} />
         <Route path="features" element={<ClientFeaturesComponent />} />
         

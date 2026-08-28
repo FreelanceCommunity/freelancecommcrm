@@ -3,10 +3,13 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Video, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { Calendar, Video, Clock, VideoIcon } from 'lucide-react';
+import JitsiMeetingWrapper from '@/components/JitsiMeetingWrapper';
 
 export default function ClientMeetings() {
   const { clientId } = useAuth();
+  const [activeRoom, setActiveRoom] = useState<string | null>(null);
 
   const { data: meetings, isLoading } = useQuery({
     queryKey: ['portal_meetings', clientId],
@@ -53,17 +56,29 @@ export default function ClientMeetings() {
                     {new Date(meeting.start_time).toLocaleString()}
                   </div>
                 </div>
-                {meeting.meeting_url && (
-                  <Button variant="default" className="w-full" asChild>
-                    <a href={meeting.meeting_url} target="_blank" rel="noopener noreferrer">
-                      <Video className="mr-2 h-4 w-4" /> Join Meeting
-                    </a>
+                <div className="space-y-2 mt-4">
+                  <Button variant="default" className="w-full bg-indigo-600 hover:bg-indigo-700" onClick={() => setActiveRoom(meeting.id)}>
+                    <VideoIcon className="mr-2 h-4 w-4" /> Start Native Call
                   </Button>
-                )}
+                  {meeting.meeting_url && (
+                    <Button variant="secondary" className="w-full" asChild>
+                      <a href={meeting.meeting_url} target="_blank" rel="noopener noreferrer">
+                        <Video className="mr-2 h-4 w-4" /> External Link
+                      </a>
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
+      )}
+
+      {activeRoom && (
+        <JitsiMeetingWrapper 
+          roomName={activeRoom} 
+          onClose={() => setActiveRoom(null)} 
+        />
       )}
     </div>
   );

@@ -113,7 +113,7 @@ export default function ClientMessages() {
       >
         <Input 
           value={newMessage} 
-          onChange={(e) => setNewMessage(e.target.value)} 
+          onChange={(e: any) => setNewMessage(e.target.value)} 
           placeholder="Type your message..." 
           className="flex-1"
           disabled={sendMessage.isPending}

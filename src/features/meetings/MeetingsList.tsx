@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Calendar, Video, Clock, User, Plus } from 'lucide-react';
+import { Calendar, Video, Clock, User, Plus, VideoIcon } from 'lucide-react';
+import JitsiMeetingWrapper from '@/components/JitsiMeetingWrapper';
 
 export default function MeetingsList() {
   const { organizationId, user } = useAuth();
@@ -18,6 +19,7 @@ export default function MeetingsList() {
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [meetingUrl, setMeetingUrl] = useState('');
+  const [activeRoom, setActiveRoom] = useState<string | null>(null);
 
   const { data: meetings, isLoading } = useQuery({
     queryKey: ['admin_meetings', organizationId],
@@ -84,11 +86,11 @@ export default function MeetingsList() {
             <form onSubmit={e => { e.preventDefault(); createMeeting.mutate(); }} className="space-y-4">
               <div className="space-y-2">
                 <Label>Title</Label>
-                <Input value={title} onChange={e => setTitle(e.target.value)} required />
+                <Input value={title} onChange={(e: any) => setTitle(e.target.value)} required />
               </div>
               <div className="space-y-2">
                 <Label>Client (Optional)</Label>
-                <select value={clientId} onChange={e => setClientId(e.target.value)} className="w-full rounded-md border p-2">
+                <select value={clientId} onChange={(e: any) => setClientId(e.target.value)} className="w-full rounded-md border p-2">
                   <option value="">No Client (Internal)</option>
                   {clients?.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
@@ -96,16 +98,16 @@ export default function MeetingsList() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Start Time</Label>
-                  <Input type="datetime-local" value={startTime} onChange={e => setStartTime(e.target.value)} required />
+                  <Input type="datetime-local" value={startTime} onChange={(e: any) => setStartTime(e.target.value)} required />
                 </div>
                 <div className="space-y-2">
                   <Label>End Time</Label>
-                  <Input type="datetime-local" value={endTime} onChange={e => setEndTime(e.target.value)} required />
+                  <Input type="datetime-local" value={endTime} onChange={(e: any) => setEndTime(e.target.value)} required />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Meeting Link (Jitsi, Zoom, Meet)</Label>
-                <Input value={meetingUrl} onChange={e => setMeetingUrl(e.target.value)} placeholder="https://..." />
+                <Input value={meetingUrl} onChange={(e: any) => setMeetingUrl(e.target.value)} placeholder="https://..." />
               </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
@@ -148,17 +150,29 @@ export default function MeetingsList() {
                     </div>
                   )}
                 </div>
-                {meeting.meeting_url && (
-                  <Button variant="secondary" className="w-full" asChild>
-                    <a href={meeting.meeting_url} target="_blank" rel="noopener noreferrer">
-                      <Video className="mr-2 h-4 w-4" /> Join Meeting
-                    </a>
+                <div className="space-y-2">
+                  <Button variant="default" className="w-full bg-indigo-600 hover:bg-indigo-700" onClick={() => setActiveRoom(meeting.id)}>
+                    <VideoIcon className="mr-2 h-4 w-4" /> Start Native Call
                   </Button>
-                )}
+                  {meeting.meeting_url && (
+                    <Button variant="secondary" className="w-full" asChild>
+                      <a href={meeting.meeting_url} target="_blank" rel="noopener noreferrer">
+                        <Video className="mr-2 h-4 w-4" /> External Link
+                      </a>
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
+      )}
+
+      {activeRoom && (
+        <JitsiMeetingWrapper 
+          roomName={activeRoom} 
+          onClose={() => setActiveRoom(null)} 
+        />
       )}
     </div>
   );

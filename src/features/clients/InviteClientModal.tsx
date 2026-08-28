@@ -38,12 +38,12 @@ export default function InviteClientModal({ clientId, orgId }: { clientId: strin
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Client Email</Label>
-            <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="client@example.com" />
+            <Input type="email" value={email} onChange={(e: any) => setEmail(e.target.value)} placeholder="client@example.com" />
             <p className="text-xs text-muted-foreground">They will receive a secure token to set their own password.</p>
           </div>
           <div className="space-y-2">
             <Label>Role</Label>
-            <select className="flex h-10 w-full rounded-md border px-3" value={role} onChange={e => setRole(e.target.value)}>
+            <select className="flex h-10 w-full rounded-md border px-3" value={role} onChange={(e: any) => setRole(e.target.value)}>
               <option value="CLIENT_ADMIN">Client Admin</option>
               <option value="CLIENT_USER">Client User</option>
             </select>

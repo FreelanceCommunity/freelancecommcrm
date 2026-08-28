@@ -4,8 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Edit, Phone, Mail, MapPin } from 'lucide-react';
+import { ArrowLeft, Edit, Phone, Mail, MapPin, Globe, FileText } from 'lucide-react';
 import InviteClientModal from './InviteClientModal';
+import ManualLoginModal from './ManualLoginModal';
 
 export default function ClientView() {
   const { id } = useParams<{ id: string }>();
@@ -43,6 +44,7 @@ export default function ClientView() {
           </span>
         </div>
         <div className="flex space-x-2">
+          <ManualLoginModal clientId={client.id} orgId={client.organization_id} />
           <InviteClientModal clientId={client.id} orgId={client.organization_id} />
           <Button variant="outline" size="sm">
             <Edit className="mr-2 h-4 w-4" />
@@ -73,11 +75,15 @@ export default function ClientView() {
                 <Phone className="w-4 h-4 mr-2" />
                 {client.phone || '—'}
               </div>
+              <div className="flex items-center text-muted-foreground">
+                <Globe className="w-4 h-4 mr-2" />
+                {client.website || '—'}
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Location</CardTitle>
+              <CardTitle className="text-lg">Location & Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-start text-muted-foreground">
@@ -86,6 +92,10 @@ export default function ClientView() {
                   <div>{client.address || '—'}</div>
                   <div>{client.state} {client.country}</div>
                 </div>
+              </div>
+              <div className="flex items-center text-muted-foreground mt-4 border-t pt-4">
+                <FileText className="w-4 h-4 mr-2" />
+                Tax Number: {client.tax_number || '—'}
               </div>
             </CardContent>
           </Card>

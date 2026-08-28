@@ -98,11 +98,11 @@ export default function ClientProfile() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>First Name</Label>
-                  <Input value={firstName} onChange={e => setFirstName(e.target.value)} />
+                  <Input value={firstName} onChange={(e: any) => setFirstName(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label>Last Name</Label>
-                  <Input value={lastName} onChange={e => setLastName(e.target.value)} />
+                  <Input value={lastName} onChange={(e: any) => setLastName(e.target.value)} />
                 </div>
               </div>
               <div className="flex gap-2">
@@ -147,11 +147,11 @@ export default function ClientProfile() {
           <div className="space-y-3">
             <div className="space-y-2">
               <Label>New Password</Label>
-              <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="At least 8 characters" />
+              <Input type="password" value={newPassword} onChange={(e: any) => setNewPassword(e.target.value)} placeholder="At least 8 characters" />
             </div>
             <div className="space-y-2">
               <Label>Confirm New Password</Label>
-              <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+              <Input type="password" value={confirmPassword} onChange={(e: any) => setConfirmPassword(e.target.value)} />
             </div>
             <Button onClick={handleChangePassword} disabled={changingPassword || !newPassword}>
               {changingPassword ? 'Changing...' : 'Change Password'}

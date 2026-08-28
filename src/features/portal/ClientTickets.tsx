@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -95,11 +96,11 @@ export default function ClientTickets() {
             <form onSubmit={(e) => { e.preventDefault(); createTicket.mutate(); }} className="space-y-4">
               <div className="space-y-2">
                 <Label>Subject</Label>
-                <Input value={title} onChange={e => setTitle(e.target.value)} required placeholder="Brief description of the issue" />
+                <Input value={title} onChange={(e: any) => setTitle(e.target.value)} required placeholder="Brief description of the issue" />
               </div>
               <div className="space-y-2">
                 <Label>Category</Label>
-                <select value={category} onChange={e => setCategory(e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <select value={category} onChange={(e: any) => setCategory(e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="General">General</option>
                   <option value="Bug">Bug</option>
                   <option value="Technical Support">Technical Support</option>
@@ -110,7 +111,7 @@ export default function ClientTickets() {
               </div>
               <div className="space-y-2">
                 <Label>Priority</Label>
-                <select value={priority} onChange={e => setPriority(e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <select value={priority} onChange={(e: any) => setPriority(e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="Low">Low</option>
                   <option value="Normal">Normal</option>
                   <option value="High">High</option>
@@ -121,7 +122,7 @@ export default function ClientTickets() {
                 <Label>Description</Label>
                 <textarea
                   value={description}
-                  onChange={e => setDescription(e.target.value)}
+                  onChange={(e: any) => setDescription(e.target.value)}
                   rows={4}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none"
                   placeholder="Describe your issue in detail..."
@@ -156,7 +157,7 @@ export default function ClientTickets() {
           <CardContent>
             <div className="divide-y">
               {tickets.map((ticket: any) => (
-                <div key={ticket.id} className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <Link to={`/portal/tickets/${ticket.id}`} key={ticket.id} className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 hover:bg-muted/50 transition-colors px-2 rounded-md -mx-2 block">
                   <div>
                     <div className="font-semibold">{ticket.title}</div>
                     <div className="text-sm text-muted-foreground">
@@ -175,7 +176,7 @@ export default function ClientTickets() {
                       {ticket.priority}
                     </span>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </CardContent>
