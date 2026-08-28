@@ -1,11 +1,15 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CreditCard } from 'lucide-react';
+import { CreditCard, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ClientSubscriptions() {
-  const { clientId } = useAuth();
+  const { clientId, organizationId } = useAuth();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: subscriptions, isLoading } = useQuery({
     queryKey: ['portal_subscriptions', clientId],
@@ -20,6 +24,45 @@ export default function ClientSubscriptions() {
       return data || [];
     },
     enabled: !!clientId,
+  });
+
+  const renewSubscription = useMutation({
+    mutationFn: async (sub: any) => {
+      // Calculate new next_billing_date (+1 month)
+      const currentNextBilling = new Date(sub.next_billing_date || new Date());
+      currentNextBilling.setMonth(currentNextBilling.getMonth() + 1);
+      const newNextBilling = currentNextBilling.toISOString().split('T')[0];
+
+      // Update subscription
+      const { error: subError } = await supabase
+        .from('subscriptions')
+        .update({ 
+          next_billing_date: newNextBilling,
+          status: 'Active'
+        })
+        .eq('id', sub.id);
+      if (subError) throw subError;
+
+      // Log payment
+      const { error: payError } = await supabase
+        .from('payments')
+        .insert([{
+          organization_id: organizationId,
+          client_id: clientId,
+          amount: sub.amount,
+          currency: sub.currency,
+          status: 'Succeeded'
+        }]);
+      if (payError) throw payError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['portal_subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['portal_payments'] });
+      toast({ title: 'Payment Successful', description: 'Your subscription has been renewed for 1 month.' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Payment Failed', description: error.message, variant: 'destructive' });
+    }
   });
 
   if (isLoading) return <div className="p-10 text-muted-foreground">Loading subscriptions...</div>;
@@ -74,6 +117,14 @@ export default function ClientSubscriptions() {
                 {sub.notes && (
                   <p className="text-sm text-muted-foreground">{sub.notes}</p>
                 )}
+                <div className="pt-4 flex justify-end">
+                  <Button 
+                    onClick={() => renewSubscription.mutate(sub)} 
+                    disabled={renewSubscription.isPending}
+                  >
+                    {renewSubscription.isPending ? 'Processing...' : 'Pay & Renew'} <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
