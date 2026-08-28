@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from '@/features/auth/Login';
+import Signup from '@/features/auth/Signup';
 import Unauthorized from '@/features/auth/Unauthorized';
 import { useAuth } from '@/features/auth/AuthContext';
 import { RoleGuard, type Role } from '@/features/auth/RoleGuard';
@@ -25,6 +26,40 @@ import ClientProjects from '@/features/portal/ClientProjects';
 import ClientSubscriptions from '@/features/portal/ClientSubscriptions';
 import ClientProfile from '@/features/portal/ClientProfile';
 
+// CRM Admin
+import ContactsListComponent from '@/features/crm/ContactsList';
+import LeadsListComponent from '@/features/crm/LeadsList';
+import ActivitiesListComponent from '@/features/crm/ActivitiesList';
+
+// Billing Admin
+import PaymentsListComponent from '@/features/billing/PaymentsList';
+import OverdueListComponent from '@/features/billing/OverdueList';
+
+// Projects Admin
+import TasksListComponent from '@/features/projects/TasksList';
+import MilestonesListComponent from '@/features/projects/MilestonesList';
+
+// Support Admin
+import BugsListComponent from '@/features/support/BugsList';
+import FeaturesListComponent from '@/features/support/FeaturesList';
+
+// System Admin
+import DocumentsListComponent from '@/features/system/DocumentsList';
+import ReportsListComponent from '@/features/system/ReportsList';
+import NotificationsListComponent from '@/features/system/NotificationsList';
+
+// Client Portal
+import ClientCompanyComponent from '@/features/portal/ClientCompany';
+import ClientServicesComponent from '@/features/portal/ClientServices';
+import ClientTasksComponent from '@/features/portal/ClientTasks';
+import ClientBugsComponent from '@/features/portal/ClientBugs';
+import ClientFeaturesComponent from '@/features/portal/ClientFeatures';
+import ClientPaymentsComponent from '@/features/portal/ClientPayments';
+import ClientDocumentsComponent from '@/features/portal/ClientDocuments';
+import ClientMessagesComponent from '@/features/portal/ClientMessages';
+import ClientNotificationsComponent from '@/features/portal/ClientNotifications';
+import ClientSettingsComponent from '@/features/portal/ClientSettings';
+
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { session } = useAuth();
   if (!session) return <Navigate to="/login" replace />;
@@ -39,6 +74,7 @@ function App() {
     <Routes>
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
       
       {/* Admin Routes */}
@@ -51,17 +87,34 @@ function App() {
       }>
         <Route index element={<Navigate to="/app/dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboard />} />
+        
         <Route path="clients" element={<ClientsList />} />
         <Route path="clients/new" element={<ClientCreate />} />
         <Route path="clients/:id" element={<ClientView />} />
+        <Route path="contacts" element={<ContactsListComponent />} />
+        <Route path="leads" element={<LeadsListComponent />} />
         <Route path="deals" element={<DealsKanban />} />
+        <Route path="activities" element={<ActivitiesListComponent />} />
+        
         <Route path="projects" element={<ProjectsList />} />
+        <Route path="tasks" element={<TasksListComponent />} />
+        <Route path="milestones" element={<MilestonesListComponent />} />
+        
         <Route path="subscriptions" element={<SubscriptionsList />} />
         <Route path="subscriptions/new" element={<SubscriptionCreate />} />
         <Route path="invoices" element={<InvoicesList />} />
         <Route path="invoices/new" element={<InvoiceCreate />} />
+        <Route path="payments" element={<PaymentsListComponent />} />
+        <Route path="overdue" element={<OverdueListComponent />} />
+        
         <Route path="tickets" element={<AdminTicketList />} />
         <Route path="tickets/:id" element={<AdminTicketView />} />
+        <Route path="bugs" element={<BugsListComponent />} />
+        <Route path="features" element={<FeaturesListComponent />} />
+        
+        <Route path="documents" element={<DocumentsListComponent />} />
+        <Route path="reports" element={<ReportsListComponent />} />
+        <Route path="notifications" element={<NotificationsListComponent />} />
         <Route path="settings" element={<AdminSettings />} />
       </Route>
       
@@ -75,11 +128,26 @@ function App() {
       }>
         <Route index element={<Navigate to="/portal/dashboard" replace />} />
         <Route path="dashboard" element={<ClientDashboard />} />
+        
+        <Route path="company" element={<ClientCompanyComponent />} />
+        <Route path="services" element={<ClientServicesComponent />} />
         <Route path="projects" element={<ClientProjects />} />
+        <Route path="tasks" element={<ClientTasksComponent />} />
+        
         <Route path="subscriptions" element={<ClientSubscriptions />} />
         <Route path="invoices" element={<ClientInvoices />} />
+        <Route path="payments" element={<ClientPaymentsComponent />} />
+        
         <Route path="tickets" element={<ClientTickets />} />
+        <Route path="bugs" element={<ClientBugsComponent />} />
+        <Route path="features" element={<ClientFeaturesComponent />} />
+        
+        <Route path="documents" element={<ClientDocumentsComponent />} />
+        <Route path="messages" element={<ClientMessagesComponent />} />
+        <Route path="notifications" element={<ClientNotificationsComponent />} />
+        
         <Route path="profile" element={<ClientProfile />} />
+        <Route path="settings" element={<ClientSettingsComponent />} />
       </Route>
     </Routes>
   );
