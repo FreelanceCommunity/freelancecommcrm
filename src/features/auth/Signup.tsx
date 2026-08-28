@@ -1,106 +1,38 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ShieldAlert } from 'lucide-react';
 
 export default function Signup() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  
-  const navigate = useNavigate();
+  return (
+    <div className="flex min-h-screen w-full items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+      <div className="w-full max-w-md space-y-6">
+        <div className="text-center">
+          <h1 className="text-4xl font-black tracking-tight text-white">MYSTEL</h1>
+          <p className="mt-2 text-sm text-slate-400">Client Operations & CRM Platform</p>
+        </div>
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const { error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            first_name: firstName,
-            last_name: lastName
-          }
-        }
-      });
-      
-      if (signUpError) throw signUpError;
-      
-      setSuccess(true);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during signup.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (success) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-muted/40 px-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-2xl font-black">Registration Successful</CardTitle>
-            <CardDescription>Please check your email to verify your account before logging in.</CardDescription>
+        <Card className="border-slate-700/50 bg-slate-800/50 backdrop-blur-sm shadow-2xl">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10">
+              <ShieldAlert className="h-6 w-6 text-amber-400" />
+            </div>
+            <CardTitle className="text-xl font-bold text-white">Invitation Only</CardTitle>
+            <CardDescription className="text-slate-400">
+              Account creation is by invitation only. If you are a client, your account will be
+              created by the MYSTEL administrator. Please check your email for an invitation link.
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button className="w-full" onClick={() => navigate('/login')}>Return to Login</Button>
+          <CardContent className="flex flex-col items-center gap-4">
+            <Button asChild className="w-full bg-blue-600 hover:bg-blue-500 text-white">
+              <Link to="/login">Return to Login</Link>
+            </Button>
+            <p className="text-xs text-slate-500 text-center">
+              If you believe you should have access, please contact your administrator.
+            </p>
           </CardContent>
         </Card>
       </div>
-    );
-  }
-
-  return (
-    <div className="flex h-screen w-full items-center justify-center bg-muted/40 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl font-black">MYSTEL Sign Up</CardTitle>
-          <CardDescription>Create a new account to get started.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSignup} className="space-y-4">
-            {error && (
-              <div className="rounded bg-destructive/15 p-3 text-sm text-destructive">
-                {error}
-              </div>
-            )}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="first_name">First name</Label>
-                <Input id="first_name" required value={firstName} onChange={e => setFirstName(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="last_name">Last name</Label>
-                <Input id="last_name" required value={lastName} onChange={e => setLastName(e.target.value)} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" required placeholder="m@example.com" value={email} onChange={e => setEmail(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" required value={password} onChange={e => setPassword(e.target.value)} />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating account...' : 'Sign Up'}
-            </Button>
-          </form>
-          <div className="mt-4 text-center text-sm">
-            Already have an account? <Link to="/login" className="underline hover:text-primary">Log in</Link>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

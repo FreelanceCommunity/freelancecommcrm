@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from '@/features/auth/Login';
 import Signup from '@/features/auth/Signup';
+import ForgotPassword from '@/features/auth/ForgotPassword';
+import ResetPassword from '@/features/auth/ResetPassword';
 import Unauthorized from '@/features/auth/Unauthorized';
 import { useAuth } from '@/features/auth/AuthContext';
 import { RoleGuard, type Role } from '@/features/auth/RoleGuard';
@@ -60,6 +62,15 @@ import ClientMessagesComponent from '@/features/portal/ClientMessages';
 import ClientNotificationsComponent from '@/features/portal/ClientNotifications';
 import ClientSettingsComponent from '@/features/portal/ClientSettings';
 
+function SmartRedirect() {
+  const { session, isAdmin, isClient } = useAuth();
+
+  if (!session) return <Navigate to="/login" replace />;
+  if (isAdmin) return <Navigate to="/app/dashboard" replace />;
+  if (isClient) return <Navigate to="/portal" replace />;
+  return <Navigate to="/unauthorized" replace />;
+}
+
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { session } = useAuth();
   if (!session) return <Navigate to="/login" replace />;
@@ -72,9 +83,11 @@ const clientRoles: Role[] = ['CLIENT_ADMIN', 'CLIENT_USER'];
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/" element={<SmartRedirect />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
       
       {/* Admin Routes */}

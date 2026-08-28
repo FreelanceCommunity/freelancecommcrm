@@ -1,36 +1,29 @@
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
 import { useAuth } from './AuthContext';
+import type { UserRole } from './AuthContext';
 
-export type Role = 'OWNER' | 'ADMIN' | 'STAFF' | 'ACCOUNT_MANAGER' | 'SUPPORT_AGENT' | 'CLIENT_ADMIN' | 'CLIENT_USER';
-
-export function useUserRoles() {
-  const { user } = useAuth();
-
-  return useQuery({
-    queryKey: ['userRoles', user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data, error } = await supabase
-        .from('organization_members')
-        .select('role, organization_id')
-        .eq('user_id', user.id);
-        
-      if (error) throw error;
-      return data as { role: Role; organization_id: string }[];
-    },
-    enabled: !!user,
-  });
-}
+export type Role = UserRole;
 
 export function RoleGuard({ children, allowedRoles }: { children: ReactNode; allowedRoles: Role[] }) {
-  const { data: roles, isLoading } = useUserRoles();
+  const { memberships, loading, session } = useAuth();
 
-  if (isLoading) return <div className="flex h-screen items-center justify-center">Loading permissions...</div>;
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Checking permissions...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const hasAccess = roles?.some(r => allowedRoles.includes(r.role));
+  if (!session) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const hasAccess = memberships.some(m => allowedRoles.includes(m.role));
 
   if (!hasAccess) {
     return <Navigate to="/unauthorized" replace />;

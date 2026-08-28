@@ -1,54 +1,87 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/features/auth/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ExternalLink } from 'lucide-react';
+import { FileText } from 'lucide-react';
 
 export default function ClientInvoices() {
+  const { clientId } = useAuth();
+
   const { data: invoices, isLoading } = useQuery({
-    queryKey: ['portal_invoices_all'],
+    queryKey: ['portal_invoices', clientId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('invoices').select('*').order('created_at', { ascending: false });
+      if (!clientId) return [];
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('invoice_date', { ascending: false });
       if (error) throw error;
-      return data;
-    }
+      return data || [];
+    },
+    enabled: !!clientId,
   });
+
+  if (isLoading) return <div className="p-10 text-muted-foreground">Loading invoices...</div>;
+
+  const statusColor = (status: string) => {
+    switch (status) {
+      case 'Paid': return 'bg-green-100 text-green-700';
+      case 'Sent': case 'Viewed': return 'bg-blue-100 text-blue-700';
+      case 'Overdue': return 'bg-red-100 text-red-700';
+      case 'Draft': return 'bg-slate-100 text-slate-600';
+      case 'Partially Paid': return 'bg-amber-100 text-amber-700';
+      default: return 'bg-muted text-muted-foreground';
+    }
+  };
 
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">My Invoices</h1>
-      <Card>
-        <CardContent className="pt-6">
-          {isLoading ? (
-            <p>Loading invoices...</p>
-          ) : invoices?.length === 0 ? (
-            <p className="text-muted-foreground">You have no invoices.</p>
-          ) : (
-            <div className="divide-y">
-              {invoices?.map(inv => (
-                <div key={inv.id} className="py-4 flex justify-between items-center">
-                  <div>
-                    <div className="font-semibold text-lg">{inv.invoice_number}</div>
-                    <div className="text-sm text-muted-foreground">Due: {inv.due_date ? new Date(inv.due_date).toLocaleDateString() : 'N/A'}</div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="text-right">
-                      <div className="font-bold text-lg">${inv.total}</div>
-                      <span className="px-2 py-1 text-xs bg-primary/10 text-primary rounded-full font-semibold">{inv.status}</span>
-                    </div>
-                    {inv.status !== 'Paid' && (
-                      <Button size="sm">Pay Now</Button>
-                    )}
-                    <Button variant="outline" size="sm" title="Download PDF">
-                      <ExternalLink className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+
+      {!invoices || invoices.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <FileText className="h-10 w-10 text-muted-foreground/30 mb-3" />
+            <p className="text-muted-foreground">No invoices yet.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="overflow-auto">
+              <table className="w-full text-sm">
+                <thead className="border-b bg-muted/50 text-left">
+                  <tr>
+                    <th className="p-3 font-medium">Invoice #</th>
+                    <th className="p-3 font-medium">Date</th>
+                    <th className="p-3 font-medium">Due Date</th>
+                    <th className="p-3 font-medium text-right">Amount</th>
+                    <th className="p-3 font-medium text-right">Paid</th>
+                    <th className="p-3 font-medium text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {invoices.map((inv: any) => (
+                    <tr key={inv.id} className="hover:bg-muted/50 transition-colors">
+                      <td className="p-3 font-medium">{inv.invoice_number}</td>
+                      <td className="p-3 text-muted-foreground">{new Date(inv.invoice_date).toLocaleDateString()}</td>
+                      <td className="p-3 text-muted-foreground">{inv.due_date ? new Date(inv.due_date).toLocaleDateString() : '-'}</td>
+                      <td className="p-3 text-right font-medium">${inv.total}</td>
+                      <td className="p-3 text-right text-muted-foreground">${inv.amount_paid || 0}</td>
+                      <td className="p-3 text-center">
+                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor(inv.status)}`}>
+                          {inv.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

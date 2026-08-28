@@ -1,47 +1,23 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Settings } from 'lucide-react';
 
-export default function SettingsComponent() {
-  const { data, isLoading } = useQuery({
-    queryKey: ['profiles', 'Settings'],
-    queryFn: async () => {
-      try {
-        const { data, error } = await supabase.from('profiles').select('*').limit(20);
-        if (error) return [];
-        return data || [];
-      } catch (err) {
-        return [];
-      }
-    }
-  });
-
-  if (isLoading) return <div className="p-10">Loading Settings...</div>;
-
+export default function ClientSettings() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+
       <Card>
         <CardHeader>
-          <CardTitle>Settings Records</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            Account Settings
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          {!data || data.length === 0 ? (
-            <p className="text-muted-foreground">No records found.</p>
-          ) : (
-            <div className="divide-y">
-              {data.map((item: any, i: number) => (
-                <div key={item.id || i} className="py-4 flex justify-between">
-                  <div>
-                    <span className="font-medium">{item.name || item.title || item.first_name || item.action || item.description || 'Record ' + (i+1)}</span>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {item.created_at || item.start_date ? new Date(item.created_at || item.start_date).toLocaleDateString() : ''}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <p className="text-muted-foreground text-sm">
+            Account settings and preferences will be available here. For now, you can manage your
+            profile and password from the <a href="/portal/profile" className="text-primary underline">Profile page</a>.
+          </p>
         </CardContent>
       </Card>
     </div>
