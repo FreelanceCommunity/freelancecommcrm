@@ -19,6 +19,8 @@ export default function MeetingsList() {
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [meetingUrl, setMeetingUrl] = useState('');
+  const [projectId, setProjectId] = useState('');
+  const [description, setDescription] = useState('');
   const [activeRoom, setActiveRoom] = useState<string | null>(null);
 
   const { data: meetings, isLoading } = useQuery({
@@ -27,7 +29,7 @@ export default function MeetingsList() {
       if (!organizationId) return [];
       const { data, error } = await supabase
         .from('meetings')
-        .select('*, client:clients(name)')
+        .select('*, client:clients(name), project:projects(name)')
         .eq('organization_id', organizationId)
         .order('start_time', { ascending: true });
       if (error) throw error;
@@ -46,12 +48,24 @@ export default function MeetingsList() {
     enabled: !!organizationId,
   });
 
+  const { data: projects } = useQuery({
+    queryKey: ['projects_lookup', organizationId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('projects').select('id, name, client_id').eq('organization_id', organizationId);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!organizationId,
+  });
+
   const createMeeting = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from('meetings').insert([{
         organization_id: organizationId,
         title,
+        description: description || null,
         client_id: clientId || null,
+        project_id: projectId || null,
         organizer_id: user?.id,
         start_time: new Date(startTime).toISOString(),
         end_time: new Date(endTime).toISOString(),
@@ -63,6 +77,9 @@ export default function MeetingsList() {
       queryClient.invalidateQueries({ queryKey: ['admin_meetings'] });
       setOpen(false);
       setTitle('');
+      setDescription('');
+      setClientId('');
+      setProjectId('');
       setStartTime('');
       setEndTime('');
       setMeetingUrl('');
@@ -89,11 +106,24 @@ export default function MeetingsList() {
                 <Input value={title} onChange={(e: any) => setTitle(e.target.value)} required />
               </div>
               <div className="space-y-2">
-                <Label>Client (Optional)</Label>
-                <select value={clientId} onChange={(e: any) => setClientId(e.target.value)} className="w-full rounded-md border p-2">
-                  <option value="">No Client (Internal)</option>
-                  {clients?.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                <Label>Description</Label>
+                <Input value={description} onChange={(e: any) => setDescription(e.target.value)} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Client (Optional)</Label>
+                  <select value={clientId} onChange={(e: any) => { setClientId(e.target.value); setProjectId(''); }} className="w-full rounded-md border p-2 bg-background text-sm">
+                    <option value="">No Client (Internal)</option>
+                    {clients?.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Project (Optional)</Label>
+                  <select value={projectId} onChange={(e: any) => setProjectId(e.target.value)} className="w-full rounded-md border p-2 bg-background text-sm">
+                    <option value="">No Project</option>
+                    {projects?.filter((p: any) => !clientId || p.client_id === clientId).map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -143,10 +173,20 @@ export default function MeetingsList() {
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     {new Date(meeting.start_time).toLocaleString()}
                   </div>
+                  {meeting.description && (
+                    <div className="text-muted-foreground">
+                      {meeting.description}
+                    </div>
+                  )}
                   {meeting.client && (
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-muted-foreground" />
                       {meeting.client.name}
+                    </div>
+                  )}
+                  {meeting.project && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium bg-muted/50 w-fit px-2 py-1 rounded">
+                      Project: {meeting.project.name}
                     </div>
                   )}
                 </div>

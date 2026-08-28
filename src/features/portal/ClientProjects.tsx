@@ -2,7 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FolderOpen, Calendar } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { FolderOpen, Calendar, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function ClientProjects() {
   const { clientId } = useAuth();
@@ -73,6 +75,14 @@ export default function ClientProjects() {
                       Target: {new Date(project.target_date).toLocaleDateString()}
                     </div>
                   )}
+                </div>
+                <div className="pt-2">
+                  <Button variant="outline" className="w-full justify-between" asChild>
+                    <Link to={`/portal/projects/${project.id}`}>
+                      View Project Details
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Link>
+                  </Button>
                 </div>
               </CardContent>
             </Card>

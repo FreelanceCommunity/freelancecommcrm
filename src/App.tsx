@@ -26,6 +26,7 @@ import ClientTicketView from '@/features/portal/ClientTicketView';
 import ProjectsList from '@/features/projects/ProjectsList';
 import AdminSettings from '@/features/settings/AdminSettings';
 import ClientProjects from '@/features/portal/ClientProjects';
+import ClientProjectView from '@/features/portal/ClientProjectView';
 import ClientSubscriptions from '@/features/portal/ClientSubscriptions';
 import ClientProfile from '@/features/portal/ClientProfile';
 import ClientMeetings from '@/features/portal/ClientMeetings';
@@ -151,6 +152,7 @@ function App() {
         <Route path="company" element={<ClientCompanyComponent />} />
         <Route path="services" element={<ClientServicesComponent />} />
         <Route path="projects" element={<ClientProjects />} />
+        <Route path="projects/:id" element={<ClientProjectView />} />
         <Route path="tasks" element={<ClientTasksComponent />} />
         <Route path="meetings" element={<ClientMeetings />} />
         
