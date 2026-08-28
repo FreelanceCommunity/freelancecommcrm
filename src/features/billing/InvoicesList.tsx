@@ -62,6 +62,30 @@ export default function InvoicesList() {
     }
   };
 
+  const handleSendInChat = async (invoice: any) => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
+      const { data: orgs } = await supabase.rpc('get_user_organizations');
+      const orgId = orgs?.[0];
+      if (!orgId) return;
+
+      const message = `Hello! Your new invoice ${invoice.invoice_number} for ${invoice.currency} ${invoice.total} is ready. You can view it here: https://crm.freelancecomm.site/portal/invoices/${invoice.id}`;
+      
+      const { error } = await supabase.from('client_messages').insert([{
+        organization_id: orgId,
+        client_id: invoice.client_id,
+        sender_id: userData.user.id,
+        message: message
+      }]);
+      
+      if (error) throw error;
+      alert('Invoice sent to client in chat!');
+    } catch (err: any) {
+      alert('Failed to send in chat: ' + err.message);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -123,9 +147,14 @@ export default function InvoicesList() {
                     </td>
                     <td className="p-4 text-right flex justify-end gap-2">
                       <Button variant="ghost" size="sm" onClick={() => handleSendEmail(invoice)} disabled={sendingInvoiceId === invoice.id}>
-                        {sendingInvoiceId === invoice.id ? 'Sending...' : 'Send'}
+                        {sendingInvoiceId === invoice.id ? 'Emailing...' : 'Email'}
                       </Button>
-                      <Button variant="ghost" size="sm">View</Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleSendInChat(invoice)}>
+                        Chat Link
+                      </Button>
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link to={`/app/invoices/${invoice.id}`}>View</Link>
+                      </Button>
                     </td>
                   </tr>
                 ))

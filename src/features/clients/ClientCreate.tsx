@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/features/auth/AuthContext';
 
 const clientSchema = z.object({
   name: z.string().min(2, "Company name is required"),
@@ -22,6 +23,7 @@ type ClientFormValues = z.infer<typeof clientSchema>;
 
 export default function ClientCreate() {
   const navigate = useNavigate();
+  const { organizationId } = useAuth();
   const [loading, setLoading] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<ClientFormValues>({
@@ -31,17 +33,13 @@ export default function ClientCreate() {
   const onSubmit = async (data: ClientFormValues) => {
     setLoading(true);
     try {
-      const { data: orgs, error: orgError } = await supabase.rpc('get_user_organizations');
-      if (orgError) throw orgError;
-      
-      const orgId = orgs && orgs.length > 0 ? orgs[0] : null;
-      if (!orgId) throw new Error("No organization found for current user.");
+      if (!organizationId) throw new Error("No organization found for current user.");
 
       const { data: newClient, error } = await supabase
         .from('clients')
         .insert([{
           ...data,
-          organization_id: orgId
+          organization_id: organizationId
         }])
         .select()
         .single();

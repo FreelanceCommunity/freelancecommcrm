@@ -2,7 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
-import { FileText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { FileText, Eye } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function ClientInvoices() {
   const { clientId } = useAuth();
@@ -59,6 +61,7 @@ export default function ClientInvoices() {
                     <th className="p-3 font-medium text-right">Amount</th>
                     <th className="p-3 font-medium text-right">Paid</th>
                     <th className="p-3 font-medium text-center">Status</th>
+                    <th className="p-3 font-medium text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -73,6 +76,13 @@ export default function ClientInvoices() {
                         <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor(inv.status)}`}>
                           {inv.status}
                         </span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link to={`/portal/invoices/${inv.id}`}>
+                            <Eye className="h-4 w-4 mr-2" /> View
+                          </Link>
+                        </Button>
                       </td>
                     </tr>
                   ))}

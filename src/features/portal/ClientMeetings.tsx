@@ -58,7 +58,7 @@ export default function ClientMeetings() {
                 </div>
                 <div className="space-y-2 mt-4">
                   <Button variant="default" className="w-full bg-indigo-600 hover:bg-indigo-700" onClick={() => setActiveRoom(meeting.id)}>
-                    <VideoIcon className="mr-2 h-4 w-4" /> Start Native Call
+                    <VideoIcon className="mr-2 h-4 w-4" /> Join Meeting
                   </Button>
                   {meeting.meeting_url && (
                     <Button variant="secondary" className="w-full" asChild>

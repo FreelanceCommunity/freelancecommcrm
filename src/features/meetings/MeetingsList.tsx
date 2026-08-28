@@ -18,7 +18,6 @@ export default function MeetingsList() {
   const [clientId, setClientId] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
-  const [meetingUrl, setMeetingUrl] = useState('');
   const [projectId, setProjectId] = useState('');
   const [description, setDescription] = useState('');
   const [activeRoom, setActiveRoom] = useState<string | null>(null);
@@ -69,7 +68,7 @@ export default function MeetingsList() {
         organizer_id: user?.id,
         start_time: new Date(startTime).toISOString(),
         end_time: new Date(endTime).toISOString(),
-        meeting_url: meetingUrl || null,
+        meeting_url: null, // Always use native Jitsi ID
       }]);
       if (error) throw error;
     },
@@ -82,7 +81,6 @@ export default function MeetingsList() {
       setProjectId('');
       setStartTime('');
       setEndTime('');
-      setMeetingUrl('');
     }
   });
 
@@ -135,11 +133,7 @@ export default function MeetingsList() {
                   <Input type="datetime-local" value={endTime} onChange={(e: any) => setEndTime(e.target.value)} required />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Meeting Link (Jitsi, Zoom, Meet)</Label>
-                <Input value={meetingUrl} onChange={(e: any) => setMeetingUrl(e.target.value)} placeholder="https://..." />
-              </div>
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-2 mt-4">
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
                 <Button type="submit" disabled={createMeeting.isPending || !title || !startTime || !endTime}>
                   {createMeeting.isPending ? 'Scheduling...' : 'Schedule'}
@@ -190,9 +184,9 @@ export default function MeetingsList() {
                     </div>
                   )}
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 pt-2">
                   <Button variant="default" className="w-full bg-indigo-600 hover:bg-indigo-700" onClick={() => setActiveRoom(meeting.id)}>
-                    <VideoIcon className="mr-2 h-4 w-4" /> Start Native Call
+                    <VideoIcon className="mr-2 h-4 w-4" /> Join Meeting
                   </Button>
                   {meeting.meeting_url && (
                     <Button variant="secondary" className="w-full" asChild>
