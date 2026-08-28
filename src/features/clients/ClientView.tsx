@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Edit, Phone, Mail, MapPin, Globe, FileText } from 'lucide-react';
+import { ArrowLeft, Phone, Mail, MapPin, Globe, FileText } from 'lucide-react';
 import InviteClientModal from './InviteClientModal';
 import ManualLoginModal from './ManualLoginModal';
 import ClientEditModal from './ClientEditModal';

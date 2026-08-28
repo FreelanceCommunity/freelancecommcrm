@@ -150,6 +150,7 @@ export default function ClientTicketView() {
             );
           })}
         </div>
+      </div>
 
       {ticket.status !== 'Closed' && (
         <Card>

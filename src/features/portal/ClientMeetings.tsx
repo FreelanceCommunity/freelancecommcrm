@@ -36,7 +36,6 @@ export default function ClientMeetings() {
       if (error) throw error;
       return data || [];
     },
-    },
     enabled: !!clientId,
   });
 
