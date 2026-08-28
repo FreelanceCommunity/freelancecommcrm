@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -18,6 +18,7 @@ export default function AdminTicketView() {
   const [uploading, setUploading] = useState(false);
   const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: ticket, isLoading } = useQuery({
     queryKey: ['ticket', id],
@@ -45,6 +46,31 @@ export default function AdminTicketView() {
       return data;
     },
     enabled: !!id
+  });
+
+  // Realtime subscription for new ticket messages
+  useEffect(() => {
+    if (!id) return;
+    const channel = supabase
+      .channel(`ticket_${id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ticket_messages', filter: `ticket_id=eq.${id}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ['ticket_messages', id] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [id, queryClient]);
+
+  // Scroll to bottom on new messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const updateTicketField = useMutation({
+    mutationFn: async (fields: Record<string, string>) => {
+      const { error } = await supabase.from('tickets').update(fields).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ticket', id] }),
   });
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -103,6 +129,21 @@ export default function AdminTicketView() {
         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${ticket.status === 'Closed' ? 'bg-slate-100 text-slate-600' : 'bg-primary/10 text-primary'}`}>
           {ticket.status}
         </span>
+        {/* Status & Priority Controls */}
+        <select
+          value={ticket.status}
+          onChange={e => updateTicketField.mutate({ status: e.target.value })}
+          className="ml-2 text-xs rounded border p-1.5 bg-background cursor-pointer"
+        >
+          {['Open', 'In Progress', 'Waiting for Client', 'Resolved', 'Closed'].map(s => <option key={s}>{s}</option>)}
+        </select>
+        <select
+          value={ticket.priority}
+          onChange={e => updateTicketField.mutate({ priority: e.target.value })}
+          className="text-xs rounded border p-1.5 bg-background cursor-pointer"
+        >
+          {['Low', 'Normal', 'High', 'Urgent'].map(p => <option key={p}>{p}</option>)}
+        </select>
         {ticket.status !== 'Closed' && (
           <Button variant="outline" size="sm" className="ml-auto bg-destructive/10 text-destructive hover:bg-destructive hover:text-white" onClick={async () => {
             if (confirm('Are you sure you want to close this ticket? This will permanently delete all attached images to save storage space.')) {
@@ -149,7 +190,7 @@ export default function AdminTicketView() {
       </Card>
 
       <div className="space-y-4">
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/10 rounded-lg border">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/10 rounded-lg border min-h-[200px] max-h-[500px]">
           {messages?.map(msg => {
             const isMe = msg.user_id === user?.id;
             
@@ -161,7 +202,7 @@ export default function AdminTicketView() {
                       {msg.profile?.first_name?.[0] || 'C'}
                     </div>
                   )}
-                  <div className={`p-3 rounded-lg text-sm shadow-sm ${msg.is_internal ? 'bg-amber-100 dark:bg-amber-900/40 text-foreground border border-amber-200' : isMe ? 'bg-green-100 dark:bg-green-900 text-foreground rounded-br-none' : 'bg-card border rounded-bl-none'}`}>
+                  <div className={`p-3 rounded-lg text-sm shadow-sm ${msg.is_internal ? 'bg-amber-100 dark:bg-amber-900/40 text-foreground border border-amber-200' : isMe ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-card border rounded-bl-none'}`}>
                     {msg.is_internal && <div className="text-[10px] font-bold text-amber-600 dark:text-amber-400 mb-1">INTERNAL NOTE</div>}
                     <div className="whitespace-pre-wrap">{msg.message}</div>
                     {msg.attachment_url && (
@@ -182,6 +223,7 @@ export default function AdminTicketView() {
               </div>
             );
           })}
+          <div ref={messagesEndRef} />
         </div>
       </div>
 

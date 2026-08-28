@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useMeetingNotifications } from '@/hooks/useMeetingNotifications';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/features/auth/AuthContext';
 import { 
@@ -42,6 +43,9 @@ export default function ClientPortalLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { signOut, user } = useAuth();
+
+  // Show popup toasts when a meeting is created/updated for this client
+  useMeetingNotifications();
 
   return (
     <div className="flex h-screen bg-muted/40">
