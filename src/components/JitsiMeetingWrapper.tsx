@@ -1,6 +1,5 @@
 
-import { JitsiMeeting } from '@jitsi/react-sdk';
-import { useAuth } from '@/features/auth/AuthContext';
+
 
 interface JitsiMeetingWrapperProps {
   roomName: string;
@@ -8,11 +7,6 @@ interface JitsiMeetingWrapperProps {
 }
 
 export default function JitsiMeetingWrapper({ roomName, onClose }: JitsiMeetingWrapperProps) {
-  const { user } = useAuth();
-  
-  const displayName = user?.user_metadata?.first_name 
-    ? `${user.user_metadata.first_name} ${user.user_metadata.last_name || ''}`
-    : user?.email || 'Guest';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
@@ -26,49 +20,25 @@ export default function JitsiMeetingWrapper({ roomName, onClose }: JitsiMeetingW
             Leave Meeting
           </button>
         </div>
-        <div className="flex-1 w-full bg-black">
-          <JitsiMeeting
-            domain="meet.ffmuc.net"
-            roomName={`mystel_${roomName.replace(/[^a-zA-Z0-9]/g, '_')}`}
-            configOverwrite={{
-              startWithAudioMuted: false,
-              disableModeratorIndicator: true,
-              startScreenSharing: false,
-              enableEmailInStats: false,
-              prejoinPageEnabled: false,
-              requireDisplayName: false,
-              localRecording: {
-                enabled: true,
-                format: 'ogg'
-              },
-              toolbarButtons: [
-                'camera', 'chat', 'closedcaptions', 'desktop', 'download', 'embedmeeting',
-                'etherpad', 'feedback', 'filmstrip', 'fullscreen', 'hangup', 'help',
-                'highlight', 'invite', 'linktosalesforce', 'livestreaming', 'localrecording',
-                'microphone', 'mute-everyone', 'mute-video-everyone', 'participants-pane',
-                'profile', 'raisehand', 'recording', 'security', 'select-background',
-                'settings', 'shareaudio', 'sharedvideo', 'shortcuts', 'stats', 'tileview',
-                'toggle-camera', 'videoquality', 'whiteboard'
-              ]
+        <div className="flex-1 w-full flex flex-col items-center justify-center p-8 bg-muted/30">
+          <div className="h-20 w-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+          </div>
+          <h3 className="text-2xl font-bold mb-2">Ready to join?</h3>
+          <p className="text-muted-foreground text-center max-w-md mb-8">
+            To ensure the best experience and avoid login requirements, your secure meeting will open in a new secure window.
+          </p>
+          
+          <button 
+            onClick={() => {
+              const url = `https://meet.ffmuc.net/mystel_${roomName.replace(/[^a-zA-Z0-9]/g, '_')}`;
+              window.open(url, '_blank', 'noopener,noreferrer');
             }}
-            interfaceConfigOverwrite={{
-              DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
-              SHOW_JITSI_WATERMARK: false
-            }}
-            userInfo={{
-              displayName: displayName,
-              email: user?.email || ''
-            }}
-            onApiReady={(externalApi) => {
-              externalApi.addListener('videoConferenceLeft', () => {
-                onClose();
-              });
-            }}
-            getIFrameRef={(iframeRef) => {
-              iframeRef.style.height = '100%';
-              iframeRef.style.width = '100%';
-            }}
-          />
+            className="px-8 py-3 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+          >
+            Join Meeting Now
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </button>
         </div>
       </div>
     </div>
