@@ -13,16 +13,18 @@ export default function ManualLoginModal({ clientId, orgId }: { clientId: string
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('CLIENT_USER');
+  const [errorMessage, setErrorMessage] = useState('');
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const createLoginMutation = useMutation({
     mutationFn: async () => {
+      setErrorMessage('');
       const { data, error } = await supabase.functions.invoke('create-client-login', {
         body: { email, password, role, client_id: clientId, organization_id: orgId }
       });
       if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (data?.error) throw new Error(data.error);
       return data;
     },
     onSuccess: () => {
@@ -33,6 +35,7 @@ export default function ManualLoginModal({ clientId, orgId }: { clientId: string
       toast({ title: 'Success', description: 'Client login created manually.' });
     },
     onError: (error: any) => {
+      setErrorMessage(error.message);
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     }
   });
@@ -76,6 +79,11 @@ export default function ManualLoginModal({ clientId, orgId }: { clientId: string
           >
             {createLoginMutation.isPending ? 'Creating...' : 'Create Account'}
           </Button>
+          {errorMessage && (
+            <div className="p-3 mt-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+              {errorMessage}
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
