@@ -75,6 +75,24 @@ export default function SubscriptionCreate() {
         .single();
       
       if (error) throw error;
+
+      // Automatically create a pending payment record for this subscription amount
+      const { error: paymentError } = await supabase
+        .from('payments')
+        .insert([{
+          organization_id: orgId,
+          client_id: data.client_id,
+          amount: data.amount,
+          currency: data.currency,
+          status: 'Pending'
+        }]);
+
+      if (paymentError) {
+        console.error("Failed to create initial payment record:", paymentError);
+        // We don't throw here to avoid failing the subscription creation entirely,
+        // but it will be logged. Alternatively, you could throw to rollback (if using RPC).
+      }
+
       return newSub;
     },
     onSuccess: () => navigate('/app/subscriptions')
