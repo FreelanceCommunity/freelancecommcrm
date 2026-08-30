@@ -14,7 +14,8 @@ const subscriptionSchema = z.object({
   amount: z.number().min(0, "Amount must be a positive number"),
   currency: z.enum(['USD', 'INR']),
   interval: z.enum(['Monthly', '3 Months', '6 Months', 'Yearly']),
-  start_date: z.string()
+  start_date: z.string(),
+  payment_due_date: z.string().optional()
 });
 
 type SubscriptionFormValues = z.infer<typeof subscriptionSchema>;
@@ -46,13 +47,17 @@ export default function SubscriptionCreate() {
       const orgId = orgs?.[0];
       if (!orgId) throw new Error("No organization found");
 
-      // Calculate next billing date
-      const start = new Date(data.start_date);
-      let nextBilling = new Date(start);
-      if (data.interval === 'Monthly') nextBilling.setMonth(start.getMonth() + 1);
-      else if (data.interval === '3 Months') nextBilling.setMonth(start.getMonth() + 3);
-      else if (data.interval === '6 Months') nextBilling.setMonth(start.getMonth() + 6);
-      else if (data.interval === 'Yearly') nextBilling.setFullYear(start.getFullYear() + 1);
+      // Calculate next billing date (or use provided payment_due_date)
+      let finalNextBillingDate = data.payment_due_date;
+      if (!finalNextBillingDate) {
+        const start = new Date(data.start_date);
+        let nextBilling = new Date(start);
+        if (data.interval === 'Monthly') nextBilling.setMonth(start.getMonth() + 1);
+        else if (data.interval === '3 Months') nextBilling.setMonth(start.getMonth() + 3);
+        else if (data.interval === '6 Months') nextBilling.setMonth(start.getMonth() + 6);
+        else if (data.interval === 'Yearly') nextBilling.setFullYear(start.getFullYear() + 1);
+        finalNextBillingDate = nextBilling.toISOString().split('T')[0];
+      }
 
       const { data: newSub, error } = await supabase
         .from('subscriptions')
@@ -63,8 +68,8 @@ export default function SubscriptionCreate() {
           currency: data.currency,
           interval: data.interval,
           start_date: data.start_date,
-          next_billing_date: nextBilling.toISOString().split('T')[0],
-          status: 'Active'
+          next_billing_date: finalNextBillingDate,
+          status: 'Inactive'
         }])
         .select()
         .single();
@@ -132,6 +137,11 @@ export default function SubscriptionCreate() {
               <div className="space-y-2">
                 <Label>Start Date</Label>
                 <Input type="date" {...register('start_date')} />
+              </div>
+              <div className="space-y-2">
+                <Label>Payment Due Date (Optional)</Label>
+                <Input type="date" {...register('payment_due_date')} />
+                <p className="text-xs text-muted-foreground">Leave blank to calculate automatically.</p>
               </div>
             </div>
 

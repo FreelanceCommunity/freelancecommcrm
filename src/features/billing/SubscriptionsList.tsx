@@ -9,6 +9,8 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { Download } from 'lucide-react';
+import { exportToCSV } from '@/lib/exportUtils';
 
 export default function SubscriptionsList() {
   const queryClient = useQueryClient();
@@ -63,16 +65,28 @@ export default function SubscriptionsList() {
     setStatus(sub.status || 'Active');
   };
 
+  const handleExport = () => {
+    if (subscriptions) {
+      exportToCSV(subscriptions, 'subscriptions.csv');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Subscriptions</h1>
-        <Button asChild>
-          <Link to="/app/subscriptions/new">
-            <Plus className="mr-2 h-4 w-4" />
-            New Subscription
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExport} disabled={!subscriptions || subscriptions.length === 0}>
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
+          <Button asChild>
+            <Link to="/app/subscriptions/new">
+              <Plus className="mr-2 h-4 w-4" />
+              New Subscription
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center space-x-2">
@@ -158,6 +172,7 @@ export default function SubscriptionsList() {
               <Label>Status</Label>
               <select value={status} onChange={(e) => setStatus(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                 <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
                 <option value="Trialing">Trialing</option>
                 <option value="Past Due">Past Due</option>
                 <option value="Paused">Paused</option>

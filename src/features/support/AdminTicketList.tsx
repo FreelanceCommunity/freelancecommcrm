@@ -4,7 +4,8 @@ import { supabase } from '@/lib/supabase';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LifeBuoy, Clock, ChevronRight } from 'lucide-react';
+import { LifeBuoy, Clock, ChevronRight, Download } from 'lucide-react';
+import { exportToCSV } from '@/lib/exportUtils';
 
 const STATUS_TABS = ['All', 'Open', 'In Progress', 'Waiting for Client', 'Resolved', 'Closed'];
 
@@ -49,6 +50,12 @@ export default function AdminTicketList() {
 
   const filtered = activeTab === 'All' ? tickets : tickets?.filter(t => t.status === activeTab);
 
+  const handleExport = () => {
+    if (filtered) {
+      exportToCSV(filtered, 'support_tickets.csv');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -58,6 +65,10 @@ export default function AdminTicketList() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">Manage client support requests</p>
         </div>
+        <Button variant="outline" onClick={handleExport} disabled={!filtered || filtered.length === 0}>
+          <Download className="mr-2 h-4 w-4" />
+          Export CSV
+        </Button>
       </div>
 
       {/* Status Tabs */}

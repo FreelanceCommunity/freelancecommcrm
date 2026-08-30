@@ -4,7 +4,8 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, Download } from 'lucide-react';
+import { exportToCSV } from '@/lib/exportUtils';
 
 export default function ClientsList() {
   const [search, setSearch] = useState('');
@@ -26,16 +27,28 @@ export default function ClientsList() {
     c.email?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleExport = () => {
+    if (filteredClients) {
+      exportToCSV(filteredClients, 'clients.csv');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
-        <Button asChild>
-          <Link to="/app/clients/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Client
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExport} disabled={!filteredClients || filteredClients.length === 0}>
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
+          <Button asChild>
+            <Link to="/app/clients/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Client
+            </Link>
+          </Button>
+        </div>
       </div>
       
       <div className="flex items-center space-x-2">
