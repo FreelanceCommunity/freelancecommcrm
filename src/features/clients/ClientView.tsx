@@ -8,6 +8,7 @@ import { ArrowLeft, Phone, Mail, MapPin, Globe, FileText } from 'lucide-react';
 import InviteClientModal from './InviteClientModal';
 import ManualLoginModal from './ManualLoginModal';
 import ClientEditModal from './ClientEditModal';
+import ClientTimeWidget from './ClientTimeWidget';
 
 export default function ClientView() {
   const { id } = useParams<{ id: string }>();
@@ -95,6 +96,7 @@ export default function ClientView() {
                 <FileText className="w-4 h-4 mr-2" />
                 Tax Number: {client.tax_number || '—'}
               </div>
+              <ClientTimeWidget country={client.country} />
             </CardContent>
           </Card>
         </div>
