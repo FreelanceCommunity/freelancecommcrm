@@ -10,7 +10,7 @@ export default function NotificationsComponent() {
         const { data, error } = await supabase.from('notifications').select('*').limit(20);
         if (error) return [];
         return data || [];
-      } catch (err) {
+      } catch {
         return [];
       }
     }

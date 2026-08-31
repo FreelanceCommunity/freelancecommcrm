@@ -10,7 +10,7 @@ export default function PaymentsComponent() {
         const { data, error } = await supabase.from('payments').select('*').limit(20);
         if (error) return [];
         return data || [];
-      } catch (err) {
+      } catch {
         return [];
       }
     }

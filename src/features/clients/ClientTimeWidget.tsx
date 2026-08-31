@@ -97,7 +97,7 @@ export default function ClientTimeWidget({ country }: { country?: string | null 
         hour12: true,
         timeZone: timeZone || undefined
       }).format(date);
-    } catch (e) {
+    } catch {
       return 'Invalid Timezone';
     }
   };

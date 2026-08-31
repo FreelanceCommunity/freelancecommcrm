@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+/* eslint-disable react/incompatible-library */
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -54,7 +54,7 @@ export default function InvoiceCreate() {
   });
 
   const watchItems = watch('items');
-  const subtotal = useMemo(() => watchItems.reduce((acc, item) => acc + ((item.quantity || 0) * (item.unit_price || 0)), 0), [watchItems]);
+  const subtotal = watchItems?.reduce((acc, item) => acc + ((item.quantity || 0) * (item.unit_price || 0)), 0) || 0;
   const total = subtotal; // Ignoring tax/discount for simplicity in this demo.
 
   const createInvoice = useMutation({

@@ -39,7 +39,6 @@ serve(async (req) => {
         break;
       }
       case 'invoice.paid': {
-        const invoice = event.data.object;
         // Find corresponding database invoice and mark as paid
         // ...
         break;
