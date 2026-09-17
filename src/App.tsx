@@ -21,7 +21,6 @@ import InvoiceView from '@/features/billing/InvoiceView';
 import AdminTicketList from '@/features/support/AdminTicketList';
 import AdminTicketView from '@/features/support/AdminTicketView';
 import ClientDashboard from '@/features/portal/ClientDashboard';
-import ClientInvoices from '@/features/portal/ClientInvoices';
 import ClientTickets from '@/features/portal/ClientTickets';
 import ClientTicketView from '@/features/portal/ClientTicketView';
 import ProjectsList from '@/features/projects/ProjectsList';
@@ -159,8 +158,8 @@ function App() {
         <Route path="meetings" element={<ClientMeetings />} />
         
         <Route path="subscriptions" element={<ClientSubscriptions />} />
-        <Route path="invoices" element={<ClientInvoices />} />
-        <Route path="invoices/:id" element={<InvoiceView />} />
+        <Route path="invoices" element={<Navigate to="/portal/dashboard" replace />} />
+        <Route path="invoices/:id" element={<Navigate to="/portal/dashboard" replace />} />
         <Route path="payments" element={<ClientPaymentsComponent />} />
         
         <Route path="tickets" element={<ClientTickets />} />

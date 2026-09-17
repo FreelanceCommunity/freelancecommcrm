@@ -4,7 +4,8 @@ import { useAuth } from '@/features/auth/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { CreditCard, FileText, LifeBuoy, FolderOpen, ArrowRight } from 'lucide-react';
+import { CreditCard, Calendar, LifeBuoy, FolderOpen, ArrowRight, Video, Clock } from 'lucide-react';
+import { formatCurrency } from '@/lib/currencies';
 
 export default function ClientDashboard() {
   const { clientId, profile } = useAuth();
@@ -17,23 +18,23 @@ export default function ClientDashboard() {
       const [
         { data: client },
         { data: subscriptions },
-        { data: invoices },
+        { data: meetings },
         { count: openTickets },
         { count: activeProjects },
         { data: services },
       ] = await Promise.all([
         supabase.from('clients').select('*').eq('id', clientId).single(),
         supabase.from('subscriptions').select('*').eq('client_id', clientId).eq('status', 'Active'),
-        supabase.from('invoices').select('*').eq('client_id', clientId).order('invoice_date', { ascending: false }).limit(5),
+        supabase.from('meetings').select('*').eq('client_id', clientId).order('start_time', { ascending: true }).limit(5),
         supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('client_id', clientId).not('status', 'in', '("Closed","Resolved")'),
         supabase.from('projects').select('*', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'Active'),
         supabase.from('services').select('*').eq('client_id', clientId),
       ]);
 
-      const outstanding = invoices?.reduce((acc, inv) => inv.status !== 'Paid' && inv.status !== 'Void' ? acc + Number(inv.total || 0) - Number(inv.amount_paid || 0) : acc, 0) || 0;
       const activeSub = subscriptions?.[0] || null;
+      const upcomingMeetingsCount = meetings?.filter((m) => m.status === 'Scheduled' || m.status === 'In Progress').length || 0;
 
-      return { client, activeSub, invoices, openTickets, activeProjects, outstanding, services };
+      return { client, activeSub, meetings, upcomingMeetingsCount, openTickets, activeProjects, services };
     },
     enabled: !!clientId,
   });
@@ -46,7 +47,11 @@ export default function ClientDashboard() {
         <div className="h-8 w-48 animate-pulse rounded bg-muted" />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
-            <Card key={i}><CardContent className="pt-6"><div className="h-16 animate-pulse rounded bg-muted" /></CardContent></Card>
+            <Card key={i}>
+              <CardContent className="pt-6">
+                <div className="h-16 animate-pulse rounded bg-muted" />
+              </CardContent>
+            </Card>
           ))}
         </div>
       </div>
@@ -62,7 +67,7 @@ export default function ClientDashboard() {
     );
   }
 
-  const { client, activeSub, invoices, openTickets, activeProjects, outstanding, services } = dashboardData;
+  const { client, activeSub, meetings, upcomingMeetingsCount, openTickets, activeProjects, services } = dashboardData;
 
   return (
     <div className="space-y-6">
@@ -83,11 +88,11 @@ export default function ClientDashboard() {
               <>
                 <div className="text-xl font-bold text-green-600">ACTIVE</div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  ${activeSub.amount} {activeSub.currency} / {activeSub.interval}
+                  {formatCurrency(activeSub.amount, activeSub.currency)} / {activeSub.interval}
                 </p>
                 {activeSub.next_billing_date && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Next billing: {new Date(activeSub.next_billing_date).toLocaleDateString()}
+                    Next renewal: {new Date(activeSub.next_billing_date).toLocaleDateString()}
                   </p>
                 )}
               </>
@@ -99,14 +104,12 @@ export default function ClientDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Outstanding</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Upcoming Meetings</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${outstanding > 0 ? 'text-amber-600' : ''}`}>
-              ${outstanding.toFixed(2)}
-            </div>
-            <p className="text-xs text-muted-foreground">Unpaid invoices</p>
+            <div className="text-2xl font-bold text-indigo-600">{upcomingMeetingsCount}</div>
+            <p className="text-xs text-muted-foreground">Scheduled video calls</p>
           </CardContent>
         </Card>
 
@@ -137,25 +140,25 @@ export default function ClientDashboard() {
       <div className="grid gap-4 md:grid-cols-3">
         <Button variant="outline" className="h-auto py-4 flex flex-col items-center gap-2" asChild>
           <Link to="/portal/tickets">
-            <LifeBuoy className="h-5 w-5" />
-            <span>Create Support Ticket</span>
+            <LifeBuoy className="h-5 w-5 text-primary" />
+            <span>Raise Support Ticket</span>
           </Link>
         </Button>
         <Button variant="outline" className="h-auto py-4 flex flex-col items-center gap-2" asChild>
-          <Link to="/portal/subscriptions">
-            <CreditCard className="h-5 w-5" />
-            <span>View Subscription</span>
+          <Link to="/portal/meetings">
+            <Calendar className="h-5 w-5 text-indigo-600" />
+            <span>Schedule Meeting</span>
           </Link>
         </Button>
         <Button variant="outline" className="h-auto py-4 flex flex-col items-center gap-2" asChild>
           <Link to="/portal/projects">
-            <FolderOpen className="h-5 w-5" />
+            <FolderOpen className="h-5 w-5 text-amber-600" />
             <span>View Projects</span>
           </Link>
         </Button>
       </div>
 
-      {/* Services & Recent Invoices */}
+      {/* Services & Upcoming Meetings */}
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
@@ -184,34 +187,47 @@ export default function ClientDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Recent Invoices</CardTitle>
+            <CardTitle>Upcoming Meetings</CardTitle>
             <Button variant="ghost" size="sm" asChild>
-              <Link to="/portal/invoices" className="flex items-center gap-1 text-xs">
+              <Link to="/portal/meetings" className="flex items-center gap-1 text-xs">
                 View all <ArrowRight className="h-3 w-3" />
               </Link>
             </Button>
           </CardHeader>
           <CardContent>
-            {!invoices || invoices.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No invoices yet.</p>
+            {!meetings || meetings.length === 0 ? (
+              <div className="py-6 text-center text-muted-foreground text-sm flex flex-col items-center justify-center">
+                <Calendar className="h-8 w-8 text-muted-foreground/30 mb-2" />
+                <p>No meetings scheduled.</p>
+                <Button variant="outline" size="sm" className="mt-3" asChild>
+                  <Link to="/portal/meetings">Book a Meeting</Link>
+                </Button>
+              </div>
             ) : (
               <div className="divide-y">
-                {invoices.map((inv: any) => (
-                  <div key={inv.id} className="flex justify-between py-3 items-center">
+                {meetings.map((m: any) => (
+                  <div key={m.id} className="flex justify-between py-3 items-center">
                     <div>
-                      <div className="font-medium text-sm">{inv.invoice_number}</div>
-                      <div className="text-xs text-muted-foreground">{new Date(inv.invoice_date).toLocaleDateString()}</div>
+                      <div className="font-medium text-sm flex items-center gap-2">
+                        <Video className="h-4 w-4 text-indigo-500" />
+                        {m.title}
+                      </div>
+                      <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <Clock className="h-3 w-3" />
+                        {new Date(m.start_time).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-bold text-sm">${inv.total}</div>
-                      <span className={`px-2 py-0.5 text-xs rounded-full ${
-                        inv.status === 'Paid' ? 'bg-green-100 text-green-700' :
-                        inv.status === 'Overdue' ? 'bg-red-100 text-red-700' :
-                        'bg-muted text-muted-foreground'
-                      }`}>
-                        {inv.status}
-                      </span>
-                    </div>
+                    <span
+                      className={`px-2 py-0.5 text-xs rounded-full font-medium ${
+                        m.status === 'Completed'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : m.status === 'Cancelled'
+                          ? 'bg-slate-100 text-slate-600'
+                          : 'bg-indigo-100 text-indigo-700'
+                      }`}
+                    >
+                      {m.status}
+                    </span>
                   </div>
                 ))}
               </div>

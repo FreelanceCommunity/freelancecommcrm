@@ -32,7 +32,6 @@ const navigation = [
   { name: 'Meetings', href: '/portal/meetings', icon: Calendar },
   { name: 'Support Tickets', href: '/portal/tickets', icon: LifeBuoy },
   { name: 'Subscriptions', href: '/portal/subscriptions', icon: CreditCard },
-  { name: 'Invoices', href: '/portal/invoices', icon: FileText },
   { name: 'Payments', href: '/portal/payments', icon: DollarSign },
   { name: 'Documents', href: '/portal/documents', icon: File },
   { name: 'Messages', href: '/portal/messages', icon: MessageSquare },
