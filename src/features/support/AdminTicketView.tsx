@@ -5,12 +5,11 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/auth/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
-  ArrowLeft, Image as ImageIcon, X, MapPin, CheckCircle2, Clock, 
-  Send, Lock, User, Bug, CheckSquare, Bookmark, LifeBuoy, Sparkles, 
-  Trash2, AlertOctagon, ArrowUp, ArrowDown, Minus, ExternalLink, Download, Loader2, Copy, Check
+  ArrowLeft, Image as ImageIcon, X, MapPin, CheckCircle2, 
+  Send, Lock, 
+  Trash2, ExternalLink, Download, Loader2, Copy, Check
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { JIRA_ISSUE_TYPES, JIRA_PRIORITIES, JIRA_COLUMNS } from './AdminTicketList';
@@ -241,6 +240,10 @@ export default function AdminTicketView() {
               <TypeIcon className="h-3.5 w-3.5" /> {typeConfig.name}
             </span>
 
+            <span className={`px-2 py-1 rounded flex items-center gap-1 text-xs font-semibold border ${priorityConfig.color} ${priorityConfig.border}`}>
+              <PriorityIcon className="h-3.5 w-3.5" /> {priorityConfig.label}
+            </span>
+
             <button
               onClick={copyKey}
               className="font-mono text-sm font-bold text-primary hover:bg-muted px-2 py-1 rounded flex items-center gap-1 transition-colors"
@@ -424,8 +427,6 @@ export default function AdminTicketView() {
                   <p className="text-xs text-muted-foreground text-center py-6">No activity logged yet.</p>
                 ) : (
                   filteredMessages.map((msg: any) => {
-                    const isFromStaff = !msg.is_internal && msg.user_id === user?.id;
-
                     return (
                       <div
                         key={msg.id}

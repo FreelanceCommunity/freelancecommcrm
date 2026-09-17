@@ -8,7 +8,6 @@ import {
   LayoutDashboard, 
   Briefcase, 
   CreditCard, 
-  FileText,
   LifeBuoy,
   Settings,
   Menu,

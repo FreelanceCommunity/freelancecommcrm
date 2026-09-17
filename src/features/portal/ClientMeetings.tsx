@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, Video, Clock, VideoIcon, Plus, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Calendar, Video, Clock, VideoIcon, Plus, CheckCircle2 } from 'lucide-react';
 import JitsiMeetingWrapper from '@/components/JitsiMeetingWrapper';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';

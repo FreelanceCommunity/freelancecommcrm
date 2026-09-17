@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Trash2, Plus, Sparkles, Building2, User, CreditCard, ArrowLeft, Loader2 } from 'lucide-react';
+import { Trash2, Plus, Sparkles, Building2, CreditCard, ArrowLeft, Loader2 } from 'lucide-react';
 import { CURRENCIES, formatCurrency } from '@/lib/currencies';
 import { useToast } from '@/hooks/use-toast';
 

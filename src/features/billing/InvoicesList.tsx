@@ -4,14 +4,14 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { 
   Search, Plus, FileText, Download, Mail, MessageSquare, CheckCircle2, 
-  Trash2, CreditCard, Sparkles, Filter, DollarSign, Clock, AlertCircle, Loader2 
+  Trash2, CreditCard, Sparkles, Clock, AlertCircle, Loader2 
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
 import { formatCurrency } from '@/lib/currencies';
 import { exportToCSV } from '@/lib/exportUtils';
 import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 
 export default function InvoicesList() {
   const queryClient = useQueryClient();

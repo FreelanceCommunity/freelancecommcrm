@@ -6,7 +6,7 @@ import { useAuth } from '@/features/auth/AuthContext';
 import { Button } from '@/components/ui/button';
 import { 
   Printer, ArrowLeft, Download, Mail, MessageSquare, CheckCircle2, 
-  FileText, Calendar, Building2, User, CreditCard, Sparkles, Trash2, Loader2
+  FileText, CreditCard, Sparkles, Trash2, Loader2
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/currencies';
 import { useToast } from '@/hooks/use-toast';

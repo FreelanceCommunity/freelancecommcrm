@@ -7,11 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { 
   LifeBuoy, Plus, Image as ImageIcon, X, Bug, CheckSquare, 
-  Bookmark, Sparkles, AlertOctagon, ArrowUp, ArrowDown, Minus, 
-  Search, Clock, ChevronRight, Loader2
+  Bookmark, Search, ChevronRight, Loader2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 

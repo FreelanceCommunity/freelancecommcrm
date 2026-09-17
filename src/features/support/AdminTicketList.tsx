@@ -2,15 +2,14 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Link } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { 
-  LifeBuoy, Clock, ChevronRight, Download, Plus, Kanban, List, 
-  Bug, CheckSquare, Bookmark, AlertOctagon, Sparkles, Filter, 
-  Search, ArrowUp, ArrowDown, Minus, User, Image as ImageIcon, X, Loader2
+  LifeBuoy, ChevronRight, Download, Plus, Kanban, List, 
+  Bug, CheckSquare, Bookmark, AlertOctagon, Sparkles, 
+  Search, ArrowUp, ArrowDown, Minus, X, Loader2
 } from 'lucide-react';
 import { exportToCSV } from '@/lib/exportUtils';
 import { useAuth } from '@/features/auth/AuthContext';

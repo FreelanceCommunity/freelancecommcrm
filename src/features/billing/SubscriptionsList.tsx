@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Search, Plus, Edit2, FileText, Download, CheckCircle2, Calendar, Loader2 } from 'lucide-react';
+import { Search, Plus, Edit2, FileText, Download, Calendar, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Link } from 'react-router-dom';
