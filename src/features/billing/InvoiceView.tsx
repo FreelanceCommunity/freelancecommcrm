@@ -6,7 +6,7 @@ import { useAuth } from '@/features/auth/AuthContext';
 import { Button } from '@/components/ui/button';
 import { 
   Printer, ArrowLeft, Download, Mail, MessageSquare, CheckCircle2, 
-  FileText, CreditCard, Sparkles, Trash2, Loader2
+  FileText, CreditCard, Sparkles, Trash2, Loader2, Pencil
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/currencies';
 import { useToast } from '@/hooks/use-toast';
@@ -116,6 +116,7 @@ export default function InvoiceView() {
         return;
       }
 
+      const displayEmail = invoice.company_email === 'billing@freelancecomm.site' ? null : invoice.company_email;
       const html = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px;">
           <h2 style="color: #0f172a; margin-bottom: 8px;">Invoice ${invoice.invoice_number}</h2>
@@ -127,7 +128,7 @@ export default function InvoiceView() {
             <p style="margin: 4px 0; color: #334155;"><strong>Status:</strong> ${invoice.status}</p>
             <p style="margin: 4px 0; color: #334155;"><strong>Total Amount:</strong> ${formatCurrency(invoice.total, invoice.currency)}</p>
           </div>
-          <p style="color: #64748b; font-size: 13px;">Thank you for your business! Please contact billing@freelancecomm.site for any inquiries.</p>
+          <p style="color: #64748b; font-size: 13px;">Thank you for your business!${displayEmail ? ` Please contact ${displayEmail} for any inquiries.` : ''}</p>
         </div>
       `;
 
@@ -231,6 +232,7 @@ export default function InvoiceView() {
 
   const currency = invoice.currency || 'USD';
   const balanceDue = Math.max(0, Number(invoice.total || 0) - Number(invoice.amount_paid || 0));
+  const displayCompanyEmail = (invoice.company_email === 'billing@freelancecomm.site' || !invoice.company_email) ? null : invoice.company_email;
 
   // Template styling classes
   const templateConfig = {
@@ -289,6 +291,12 @@ export default function InvoiceView() {
         </Button>
 
         <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="default" className="bg-primary hover:bg-primary/90 text-primary-foreground" asChild>
+            <Link to={`/app/invoices/${invoice.id}/edit`}>
+              <Pencil className="mr-1.5 h-4 w-4" /> Edit Invoice
+            </Link>
+          </Button>
+
           {invoice.status !== 'Paid' && (
             <Button
               variant="default"
@@ -370,7 +378,7 @@ export default function InvoiceView() {
           </div>
           <div className="text-left md:text-right">
             <h2 className="text-xl font-bold">{invoice.company_name || 'Freelancecomm'}</h2>
-            <p className="text-xs opacity-90">{invoice.company_email || 'billing@freelancecomm.site'}</p>
+            {displayCompanyEmail && <p className="text-xs opacity-90">{displayCompanyEmail}</p>}
             {invoice.company_phone && <p className="text-xs opacity-80">{invoice.company_phone}</p>}
             {invoice.company_address && <p className="text-xs opacity-80">{invoice.company_address}</p>}
           </div>
@@ -521,10 +529,21 @@ export default function InvoiceView() {
 
         {/* Footer Note */}
         <div className="mt-16 pt-6 border-t border-slate-200 text-center text-xs text-slate-400">
-          Thank you for choosing Freelancecomm. For billing support, email{' '}
-          <a href="mailto:billing@freelancecomm.site" className="text-primary hover:underline">
-            billing@freelancecomm.site
-          </a>
+          {invoice.footer_note ? (
+            <span>{invoice.footer_note}</span>
+          ) : (
+            <span>
+              Thank you for choosing {invoice.company_name || 'Freelancecomm'}.
+              {displayCompanyEmail && (
+                <>
+                  {' '}For billing support, email{' '}
+                  <a href={`mailto:${displayCompanyEmail}`} className="text-primary hover:underline">
+                    {displayCompanyEmail}
+                  </a>
+                </>
+              )}
+            </span>
+          )}
         </div>
       </div>
     </div>

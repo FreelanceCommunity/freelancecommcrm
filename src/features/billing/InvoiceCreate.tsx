@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Trash2, Plus, Sparkles, Building2, CreditCard, ArrowLeft, Loader2 } from 'lucide-react';
 import { CURRENCIES, formatCurrency } from '@/lib/currencies';
 import { useToast } from '@/hooks/use-toast';
+import { getBillingSettings } from '@/lib/billingSettings';
 
 interface InvoiceItemForm {
   description: string;
@@ -35,6 +36,7 @@ interface InvoiceFormData {
   company_phone: string;
   notes: string;
   terms: string;
+  footer_note?: string;
   discount: number;
   tax_rate: number;
   shipping: number;
@@ -60,20 +62,23 @@ export default function InvoiceCreate() {
     }
   });
 
+  const billingDefaults = getBillingSettings();
+
   const { register, control, handleSubmit, watch, setValue, formState: { isSubmitting } } = useForm<InvoiceFormData>({
     defaultValues: {
-      currency: 'USD',
+      currency: billingDefaults.defaultCurrency || 'USD',
       invoice_number: defaultInvNum,
       invoice_date: todayStr,
       due_date: dueStr,
-      payment_terms: 'Due on receipt',
+      payment_terms: billingDefaults.defaultPaymentTerms || 'Due on receipt',
       template: 'modern',
-      company_name: 'Freelancecomm',
-      company_email: 'billing@freelancecomm.site',
-      company_address: 'Global Operations Headquarters',
-      company_phone: '+1 (555) 019-2834',
-      notes: 'Thank you for your business. Please remit payment by the due date.',
-      terms: 'Payment is due within 14 days of invoice issue. Late payments subject to 2% monthly fee.',
+      company_name: billingDefaults.companyName || 'Freelancecomm',
+      company_email: billingDefaults.companyEmail || '',
+      company_address: billingDefaults.companyAddress || '',
+      company_phone: billingDefaults.companyPhone || '',
+      notes: billingDefaults.defaultNotes || 'Thank you for your business. Please remit payment by the due date.',
+      terms: billingDefaults.defaultPaymentTerms || 'Payment is due within 14 days of invoice issue.',
+      footer_note: billingDefaults.defaultFooterNote || `Thank you for choosing ${billingDefaults.companyName || 'Freelancecomm'}.`,
       discount: 0,
       tax_rate: 0,
       shipping: 0,
@@ -193,9 +198,10 @@ export default function InvoiceCreate() {
             shipping: watchShipping,
             tax_rate: watchTaxRate,
             company_name: data.company_name,
-            company_email: data.company_email,
-            company_address: data.company_address,
-            company_phone: data.company_phone
+            company_email: data.company_email || null,
+            company_address: data.company_address || null,
+            company_phone: data.company_phone || null,
+            footer_note: data.footer_note || null
           }])
           .select()
           .single();
@@ -326,7 +332,7 @@ export default function InvoiceCreate() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs">Email</Label>
-                  <Input {...register('company_email')} placeholder="billing@example.com" />
+                  <Input {...register('company_email')} placeholder="support@yourcompany.com" />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Phone</Label>
@@ -502,6 +508,13 @@ export default function InvoiceCreate() {
                     rows={2}
                     className="w-full rounded-md border border-input bg-background p-2.5 text-xs focus:ring-2 focus:ring-primary"
                     placeholder="Standard terms..."
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Custom Footer Note (Optional)</Label>
+                  <Input
+                    {...register('footer_note')}
+                    placeholder="Thank you for choosing us."
                   />
                 </div>
               </div>

@@ -18,6 +18,7 @@ import SubscriptionCreate from '@/features/billing/SubscriptionCreate';
 import InvoicesList from '@/features/billing/InvoicesList';
 import InvoiceCreate from '@/features/billing/InvoiceCreate';
 import InvoiceView from '@/features/billing/InvoiceView';
+import InvoiceEdit from '@/features/billing/InvoiceEdit';
 import AdminTicketList from '@/features/support/AdminTicketList';
 import AdminTicketView from '@/features/support/AdminTicketView';
 import ClientDashboard from '@/features/portal/ClientDashboard';
@@ -125,6 +126,7 @@ function App() {
         <Route path="invoices" element={<InvoicesList />} />
         <Route path="invoices/new" element={<InvoiceCreate />} />
         <Route path="invoices/:id" element={<InvoiceView />} />
+        <Route path="invoices/:id/edit" element={<InvoiceEdit />} />
         <Route path="payments" element={<PaymentsListComponent />} />
         <Route path="overdue" element={<OverdueListComponent />} />
         

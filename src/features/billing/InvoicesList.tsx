@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { 
   Search, Plus, FileText, Download, Mail, MessageSquare, CheckCircle2, 
-  Trash2, CreditCard, Sparkles, Clock, AlertCircle, Loader2 
+  Trash2, CreditCard, Sparkles, Clock, AlertCircle, Loader2, Pencil 
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
@@ -12,6 +12,7 @@ import { formatCurrency } from '@/lib/currencies';
 import { exportToCSV } from '@/lib/exportUtils';
 import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
+import { getBillingSettings } from '@/lib/billingSettings';
 
 export default function InvoicesList() {
   const queryClient = useQueryClient();
@@ -64,6 +65,7 @@ export default function InvoicesList() {
       const dueDate = new Date(now.getTime() + 14 * 86400000).toISOString().split('T')[0];
       let generatedCount = 0;
 
+      const settings = getBillingSettings();
       for (const sub of activeSubs) {
         const invoiceNumber = `INV-${now.getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -76,12 +78,18 @@ export default function InvoicesList() {
             invoice_number: invoiceNumber,
             invoice_date: issueDate,
             due_date: dueDate,
-            currency: sub.currency || 'USD',
+            currency: sub.currency || settings.defaultCurrency || 'USD',
             subtotal: Number(sub.amount),
             total: Number(sub.amount),
             amount_paid: 0,
             status: 'Sent',
-            notes: `Monthly recurring subscription billing for ${monthYear}.`
+            company_name: settings.companyName || 'Freelancecomm',
+            company_email: settings.companyEmail || null,
+            company_address: settings.companyAddress || null,
+            company_phone: settings.companyPhone || null,
+            notes: `Monthly recurring subscription billing for ${monthYear}.`,
+            terms: settings.defaultPaymentTerms || 'Payment due within 14 days of invoice date.',
+            footer_note: settings.defaultFooterNote || `Thank you for choosing ${settings.companyName || 'Freelancecomm'}.`
           }])
           .select()
           .single();
@@ -452,6 +460,11 @@ export default function InvoicesList() {
                           title="Send to chat"
                         >
                           <MessageSquare className="h-3.5 w-3.5 mr-1" /> Chat
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-8 text-xs text-primary border-primary/30 hover:bg-primary/5" asChild>
+                          <Link to={`/app/invoices/${invoice.id}/edit`}>
+                            <Pencil className="h-3 w-3 mr-1" /> Edit
+                          </Link>
                         </Button>
                         <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
                           <Link to={`/app/invoices/${invoice.id}`}>View</Link>

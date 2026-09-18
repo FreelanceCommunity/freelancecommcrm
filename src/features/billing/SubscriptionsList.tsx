@@ -10,7 +10,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { exportToCSV } from '@/lib/exportUtils';
-import { formatCurrency } from '@/lib/currencies';
+import { formatCurrency, CURRENCIES } from '@/lib/currencies';
+import { getBillingSettings } from '@/lib/billingSettings';
 
 export default function SubscriptionsList() {
   const queryClient = useQueryClient();
@@ -21,6 +22,10 @@ export default function SubscriptionsList() {
   const [startDate, setStartDate] = useState('');
   const [nextBillingDate, setNextBillingDate] = useState('');
   const [status, setStatus] = useState('');
+  const [amount, setAmount] = useState<number | string>('');
+  const [currency, setCurrency] = useState('USD');
+  const [interval, setInterval] = useState('Monthly');
+  const [notes, setNotes] = useState('');
   const [generatingSubId, setGeneratingSubId] = useState<string | null>(null);
 
   const { data: subscriptions, isLoading } = useQuery({
@@ -44,8 +49,12 @@ export default function SubscriptionsList() {
       const { error } = await supabase
         .from('subscriptions')
         .update({
+          amount: Number(amount),
+          currency,
+          interval,
+          notes,
           start_date: startDate,
-          next_billing_date: nextBillingDate,
+          next_billing_date: nextBillingDate || null,
           status
         })
         .eq('id', editingSub.id);
@@ -77,6 +86,8 @@ export default function SubscriptionsList() {
       const dueDateObj = new Date(now.getTime() + 14 * 86400000);
       const dueDate = dueDateObj.toISOString().split('T')[0];
 
+      const settings = getBillingSettings();
+
       // 1. Create Invoice record
       const { data: invoice, error: invError } = await supabase
         .from('invoices')
@@ -87,15 +98,20 @@ export default function SubscriptionsList() {
           invoice_number: invoiceNumber,
           invoice_date: issueDate,
           due_date: dueDate,
-          currency: sub.currency || 'USD',
+          currency: sub.currency || settings.defaultCurrency || 'USD',
           subtotal: Number(sub.amount),
           tax_total: 0,
           discount_total: 0,
           total: Number(sub.amount),
           amount_paid: 0,
           status: 'Sent',
+          company_name: settings.companyName || 'Freelancecomm',
+          company_email: settings.companyEmail || null,
+          company_address: settings.companyAddress || null,
+          company_phone: settings.companyPhone || null,
           notes: `Monthly recurring subscription billing for ${monthYear}.`,
-          terms: 'Payment due within 14 days of invoice date.'
+          terms: settings.defaultPaymentTerms || 'Payment due within 14 days of invoice date.',
+          footer_note: settings.defaultFooterNote || `Thank you for choosing ${settings.companyName || 'Freelancecomm'}.`
         }])
         .select()
         .single();
@@ -153,6 +169,10 @@ export default function SubscriptionsList() {
     setStartDate(sub.start_date || '');
     setNextBillingDate(sub.next_billing_date || '');
     setStatus(sub.status || 'Active');
+    setAmount(sub.amount || 0);
+    setCurrency(sub.currency || 'USD');
+    setInterval(sub.interval || 'Monthly');
+    setNotes(sub.notes || '');
   };
 
   const handleExport = () => {
@@ -316,11 +336,11 @@ export default function SubscriptionsList() {
       </div>
 
       <Dialog open={!!editingSub} onOpenChange={(open) => !open && setEditingSub(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Edit Subscription</DialogTitle>
             <DialogDescription>
-              Update billing cycle dates or status for {editingSub?.client?.name}.
+              Update subscription pricing, intervals, dates, or status for {editingSub?.client?.name}.
             </DialogDescription>
           </DialogHeader>
           <form
@@ -330,30 +350,86 @@ export default function SubscriptionsList() {
             }}
             className="space-y-4"
           >
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-                <option value="Trialing">Trialing</option>
-                <option value="Past Due">Past Due</option>
-                <option value="Paused">Paused</option>
-                <option value="Cancelled">Cancelled</option>
-                <option value="Expired">Expired</option>
-              </select>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Amount</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Currency</Label>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  {CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.code} ({c.symbol})
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Start Date</Label>
-              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Interval</Label>
+                <select
+                  value={interval}
+                  onChange={(e) => setInterval(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="Monthly">Monthly</option>
+                  <option value="3 Months">3 Months</option>
+                  <option value="6 Months">6 Months</option>
+                  <option value="Yearly">Yearly</option>
+                  <option value="Custom">Custom</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Status</Label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                  <option value="Trialing">Trialing</option>
+                  <option value="Past Due">Past Due</option>
+                  <option value="Paused">Paused</option>
+                  <option value="Cancelled">Cancelled</option>
+                  <option value="Expired">Expired</option>
+                </select>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Next Billing Date</Label>
-              <Input type="date" value={nextBillingDate} onChange={(e) => setNextBillingDate(e.target.value)} />
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Start Date</Label>
+                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Next Billing Date</Label>
+                <Input type="date" value={nextBillingDate} onChange={(e) => setNextBillingDate(e.target.value)} />
+              </div>
             </div>
+
+            <div className="space-y-1.5">
+              <Label>Subscription Notes</Label>
+              <Input
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Optional notes or plan details..."
+              />
+            </div>
+
             <div className="flex justify-end gap-2 mt-4">
               <Button type="button" variant="outline" onClick={() => setEditingSub(null)}>
                 Cancel
