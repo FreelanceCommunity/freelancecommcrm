@@ -74,3 +74,62 @@
     @apply bg-background text-foreground;
   }
 }
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm;
+  }
+
+  /* Force background colors and exact graphics in all browsers */
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Hide app navigation chrome */
+  nav, header, aside, .print\:hidden, [role="navigation"] {
+    display: none !important;
+  }
+
+  /* Target invoice printable area to take full width and clean margins */
+  #invoice-printable {
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    min-height: 0 !important;
+  }
+
+  /* Keep tables neat and unbroken */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  tr, .avoid-break {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+}
+

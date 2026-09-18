@@ -147,10 +147,10 @@ export default function AdminLayout() {
   );
 
   return (
-    <div className="flex h-screen bg-muted/40">
+    <div className="flex h-screen bg-muted/40 print:h-auto print:bg-white print:block">
       {/* Mobile sidebar */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
+        <div className="fixed inset-0 z-50 flex md:hidden print:hidden">
           <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
           <div className="relative flex w-64 max-w-sm flex-col bg-background border-r p-6 overflow-y-auto">
             <button
@@ -165,7 +165,7 @@ export default function AdminLayout() {
       )}
 
       {/* Desktop sidebar */}
-      <div className="hidden border-r bg-background md:block md:w-64 md:shrink-0">
+      <div className="hidden border-r bg-background md:block md:w-64 md:shrink-0 print:hidden">
         <div className="flex h-full flex-col">
           <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
             <Link to="/app" className="flex items-center gap-2 font-semibold">
@@ -189,8 +189,8 @@ export default function AdminLayout() {
       </div>
 
       {/* Main content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
+      <div className="flex flex-1 flex-col overflow-hidden print:overflow-visible print:block print:w-full">
+        <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6 print:hidden">
           <Button
             variant="outline"
             size="icon"
@@ -202,7 +202,7 @@ export default function AdminLayout() {
           </Button>
           <div className="w-full flex-1"></div>
         </header>
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 print:p-0 print:m-0 print:overflow-visible print:w-full print:block">
           <Outlet />
         </main>
       </div>

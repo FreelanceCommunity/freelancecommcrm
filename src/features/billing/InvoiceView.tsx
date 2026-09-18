@@ -33,6 +33,17 @@ export default function InvoiceView() {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [isSendingChat, setIsSendingChat] = useState(false);
 
+  const handlePrint = () => {
+    if (!invoice) return;
+    const originalTitle = document.title;
+    const cleanClient = (invoice.client?.name || 'Client').replace(/[^a-zA-Z0-9_-]/g, '_');
+    document.title = `Invoice_${invoice.invoice_number}_${cleanClient}`;
+    window.print();
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 1000);
+  };
+
   const { data: invoice, isLoading, error } = useQuery({
     queryKey: ['invoice', id],
     queryFn: async () => {
@@ -309,8 +320,8 @@ export default function InvoiceView() {
             </Button>
           )}
 
-          <Button variant="outline" onClick={() => window.print()} title="Print or Save PDF">
-            <Printer className="mr-1.5 h-4 w-4" /> Print / PDF
+          <Button variant="outline" onClick={handlePrint} title="Download or Print PDF" className="font-semibold">
+            <Printer className="mr-1.5 h-4 w-4 text-primary" /> Download / Print PDF
           </Button>
 
           <Button variant="outline" onClick={handleSendEmail} disabled={isSendingEmail} title="Email PDF details to client">
@@ -361,11 +372,10 @@ export default function InvoiceView() {
       {/* Actual Printable Invoice Container */}
       <div
         id="invoice-printable"
-        className="bg-white text-slate-900 border rounded-xl shadow-md p-8 md:p-12 print:shadow-none print:border-none print:p-0 transition-all"
-        style={{ minHeight: '850px' }}
+        className="bg-white text-slate-900 border rounded-xl shadow-md p-8 md:p-12 print:shadow-none print:border-none print:p-0 print:m-0 print:w-full print:max-w-none transition-all"
       >
         {/* Template Header Banner */}
-        <div className={`p-6 rounded-lg mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${templateConfig.headerBg}`}>
+        <div className={`p-6 rounded-lg mb-6 flex flex-col md:flex-row print:flex-row justify-between items-start md:items-center print:items-center print:justify-between gap-4 ${templateConfig.headerBg}`}>
           <div>
             <span className="text-xs font-bold tracking-widest uppercase opacity-80 block">TAX INVOICE</span>
             <h1 className="text-3xl font-extrabold tracking-tight mt-1">#{invoice.invoice_number}</h1>
@@ -376,7 +386,7 @@ export default function InvoiceView() {
               </span>
             )}
           </div>
-          <div className="text-left md:text-right">
+          <div className="text-left md:text-right print:text-right">
             <h2 className="text-xl font-bold">{invoice.company_name || 'Freelancecomm'}</h2>
             {displayCompanyEmail && <p className="text-xs opacity-90">{displayCompanyEmail}</p>}
             {invoice.company_phone && <p className="text-xs opacity-80">{invoice.company_phone}</p>}
@@ -385,7 +395,7 @@ export default function InvoiceView() {
         </div>
 
         {/* Invoice Meta Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-4 border-b border-slate-200">
+        <div className="grid grid-cols-1 md:grid-cols-3 print:grid-cols-3 gap-6 py-4 border-b border-slate-200">
           <div>
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Billed To</span>
             <h3 className="text-base font-bold text-slate-900">{invoice.client?.name || 'Valued Client'}</h3>
@@ -413,7 +423,7 @@ export default function InvoiceView() {
             </div>
           </div>
 
-          <div className="space-y-2 text-left md:text-right">
+          <div className="space-y-2 text-left md:text-right print:text-right">
             <div>
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Status</span>
               <span
@@ -468,7 +478,7 @@ export default function InvoiceView() {
         </div>
 
         {/* Summary & Totals Calculation */}
-        <div className="mt-8 pt-4 border-t border-slate-200 flex flex-col md:flex-row justify-between gap-8">
+        <div className="mt-6 pt-4 border-t border-slate-200 flex flex-col md:flex-row print:flex-row justify-between print:justify-between gap-8">
           <div className="flex-1 space-y-4">
             {invoice.notes && (
               <div>
@@ -486,7 +496,7 @@ export default function InvoiceView() {
             )}
           </div>
 
-          <div className="w-full md:w-80 space-y-2.5">
+          <div className="w-full md:w-80 print:w-80 space-y-2.5 shrink-0">
             <div className="flex justify-between text-sm text-slate-600">
               <span>Subtotal</span>
               <span className="font-medium">{formatCurrency(invoice.subtotal, currency)}</span>
